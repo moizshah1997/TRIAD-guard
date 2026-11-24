@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use TRIAD Guard, please cite the archived release and the accompanying paper."
+title: "TRIAD Guard: decision-support prototype for the TRIAD-QEHS framework"
+type: software
+version: "1.1"
+date-released: "2026-11-25"
+license: MIT
+abstract: >-
+  Single-file HTML prototype that implements the readiness gate, live
+  re-gating, route risk, QEHS performance index and maturity score of the
+  TRIAD-QEHS framework for integrated journey, driver and vehicle management
+  in chemical road transport.
+keywords:
+  - dangerous goods
+  - chemical road transport
+  - journey management
+  - QEHS
+  - readiness gate
+authors:
+  - family-names: Hussain
+    given-names: Waqar
+    affiliation: "Universiti Teknologi PETRONAS, Malaysia"
+  - family-names: Hashmi
+    given-names: Syed Abdul Moiz
+    affiliation: "RMIT University, Australia"
+  - family-names: Anggraini
+    given-names: Lydia
+    affiliation: "President University, Indonesia"
+  - family-names: Lock
+    given-names: Serene Sow Mun
+    affiliation: "Universiti Teknologi PETRONAS, Malaysia"
+    orcid: "https://orcid.org/0000-0003-2285-0308"
+  - family-names: Sutisna
+    given-names: Nanang Ali
+    affiliation: "President University, Indonesia"
+  - family-names: Heryana
+    given-names: Ghany
+    affiliation: "President University, Indonesia"
+  - family-names: Mumtaz
+    given-names: Minza
+    affiliation: "NED University of Engineering & Technology, Pakistan"
+  - family-names: Khan
+    given-names: Sadia
+    affiliation: "NED University of Engineering & Technology, Pakistan"

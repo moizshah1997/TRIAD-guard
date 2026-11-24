@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRIAD Guard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>/* Layout idea: control-room console — fixed left rail of tabs, trip strip on top, dense operable panels; hazmat-amber accent, semantic green/amber/red for gate states. */
+:root{
+  --ink:#16202b; --paper:#f4f6f8; --panel:#ffffff; --line:#dde3ea; --muted:#5b6b7b;
+  --accent:#e08a00; --accent-ink:#7a4a00; --navy:#1f3b5a;
+  --go:#1e8e4e; --go-bg:#e5f5ec; --cond:#c27c00; --cond-bg:#fff4dc; --hold:#c62828; --hold-bg:#fdeaea;
+  --kj:#c77700; --kd:#2e7d32; --kv:#7b3f8c;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",Consolas,monospace;
+  --shadow:0 1px 2px rgba(16,32,48,.06),0 4px 14px rgba(16,32,48,.06);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#e6edf3; --paper:#0f1620; --panel:#16202b; --line:#26323f; --muted:#93a4b5;
+  --accent:#f0a020; --accent-ink:#f6c46a; --navy:#9cc3ea;
+  --go:#3ccf7d; --go-bg:#11301f; --cond:#f0b13a; --cond-bg:#33280f; --hold:#ff6b6b; --hold-bg:#3a1717;
+  --kj:#f0a53a; --kd:#5fcf68; --kv:#c48ad6; --shadow:0 1px 2px rgba(0,0,0,.3);color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --ink:#e6edf3; --paper:#0f1620; --panel:#16202b; --line:#26323f; --muted:#93a4b5;
+  --accent:#f0a020; --accent-ink:#f6c46a; --navy:#9cc3ea;
+  --go:#3ccf7d; --go-bg:#11301f; --cond:#f0b13a; --cond-bg:#33280f; --hold:#ff6b6b; --hold-bg:#3a1717;
+  --kj:#f0a53a; --kd:#5fcf68; --kv:#c48ad6; --shadow:0 1px 2px rgba(0,0,0,.3);color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font:14px/1.5 var(--body);}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:232px 1fr;height:100%}
+/* rail */
+.rail{background:#101a24;color:#cfd9e3;display:flex;flex-direction:column;overflow-y:auto}
+.brand{padding:18px 18px 12px;border-bottom:1px solid #22303e}
+.brand .logo{display:flex;align-items:center;gap:10px}
+.brand h1{font:700 26px/1 var(--display);letter-spacing:.5px;margin:0;color:#fff}
+.brand p{margin:6px 0 0;font-size:11.5px;color:#8fa2b5;line-height:1.35}
+.diamond{width:30px;height:30px;transform:rotate(45deg);border:3px solid var(--accent);display:grid;place-items:center;border-radius:3px;flex:none}
+.diamond span{transform:rotate(-45deg);font:700 13px var(--display);color:var(--accent)}
+.nav{display:flex;flex-direction:column;padding:8px}
+.nav .grp{font:600 10.5px var(--body);letter-spacing:1.2px;text-transform:uppercase;color:#6f8396;padding:12px 10px 4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;color:#cfd9e3;text-decoration:none;font-size:13.5px}
+.nav a:hover{background:#1a2734}
+.nav a.active{background:#24384c;color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+.nav a svg{width:18px;height:18px;flex:none;opacity:.9}
+.nav .dot{margin-left:auto;width:9px;height:9px;border-radius:50%;background:#3a4a5a}
+.dot.g{background:#3ccf7d}.dot.a{background:#f0b13a}.dot.r{background:#ff6b6b}
+.rail .foot{margin-top:auto;padding:12px 16px;font-size:11px;color:#6f8396;border-top:1px solid #22303e}
+/* main */
+.main{display:flex;flex-direction:column;min-width:0;height:100%}
+.strip{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+.strip .f{display:flex;flex-direction:column;min-width:0}
+.strip .f b{font:600 10.5px var(--body);letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.strip .f span{font-weight:600;white-space:nowrap;font-size:13px}
+.strip .sp{flex:1}
+.un{font:700 15px var(--mono);border:2px solid var(--ink);padding:1px 6px;border-radius:3px;background:var(--cond-bg)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font:700 12.5px var(--body);letter-spacing:.4px}
+.pill.go{background:var(--go-bg);color:var(--go)}.pill.cond{background:var(--cond-bg);color:var(--cond)}.pill.hold{background:var(--hold-bg);color:var(--hold)}
+.pill.idle{background:var(--paper);color:var(--muted);border:1px solid var(--line)}
+.role{display:flex;align-items:center;gap:6px}
+.role select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.view{flex:1;overflow-y:auto;padding:20px;min-height:0}
+.view h2{font:700 30px/1.1 var(--display);margin:0 0 4px;text-wrap:balance;letter-spacing:.2px}
+.view .lede{color:var(--muted);margin:0 0 16px;max-width:80ch}
+.tag{display:inline-block;font:600 10.5px var(--body);letter-spacing:.8px;text-transform:uppercase;color:var(--accent-ink);background:var(--cond-bg);padding:2px 7px;border-radius:4px;margin-bottom:6px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.g12{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow);min-width:0}
+.card h3{font:700 18px/1.2 var(--display);margin:0 0 8px;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+.card h3 .r{margin-left:auto;font:500 12px var(--body);color:var(--muted)}
+.muted{color:var(--muted)}.small{font-size:12.5px}.mono{font-family:var(--mono)}
+.num{font:600 32px/1 var(--mono);font-variant-numeric:tabular-nums}
+.kpi{display:flex;flex-direction:column;gap:4px}
+.kpi b{font:600 11px var(--body);letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:7px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+:root[data-theme="dark"] .btn.pri{color:#0f1620}
+.btn.go{background:var(--go);border-color:var(--go);color:#fff}.btn.red{background:var(--hold);border-color:var(--hold);color:#fff}
+.btn.amb{background:var(--cond);border-color:var(--cond);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:600 11px var(--body);letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto}
+.crit{display:flex;flex-direction:column;gap:6px}
+.citem{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.citem.c{border-left:4px solid var(--hold)}.citem.s{border-left:4px solid var(--navy)}
+.citem .t{font-weight:600}.citem .e{font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:5px 10px;cursor:pointer;font-size:12.5px;font-weight:600;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on.y{background:var(--go);color:#fff}.seg button.on.p{background:var(--cond);color:#fff}.seg button.on.n{background:var(--hold);color:#fff}
+.wt{font:700 11px var(--mono);background:var(--navy);color:#fff;border-radius:4px;padding:1px 5px;margin-left:6px}
+:root[data-theme="dark"] .wt{color:#0f1620}
+.bar{height:10px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--navy)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.key{border-radius:12px;padding:14px;border:2px solid var(--line);background:var(--panel);text-align:center;position:relative}
+.key .kn{font:700 15px var(--display);letter-spacing:.6px;text-transform:uppercase}
+.key .ks{font:600 34px/1.1 var(--mono);margin:6px 0}
+.key.ok{border-color:var(--go)}.key.mid{border-color:var(--cond);background:var(--cond-bg)}.key.bad{border-color:var(--hold);background:var(--hold-bg)}
+.key svg{width:34px;height:34px}
+.decision{border-radius:14px;padding:18px;text-align:center;border:2px solid}
+.decision.go{background:var(--go-bg);border-color:var(--go);color:var(--go)}.decision.cond{background:var(--cond-bg);border-color:var(--cond);color:var(--cond)}.decision.hold{background:var(--hold-bg);border-color:var(--hold);color:var(--hold)}
+.decision .d{font:700 42px/1 var(--display);letter-spacing:1px}
+.loop{display:flex;gap:6px;flex-wrap:wrap}
+.loop a{flex:1;min-width:92px;text-decoration:none;color:var(--ink);text-align:center;padding:9px 6px;border-radius:8px;border:1px solid var(--line);background:var(--paper);font:700 14px var(--display);letter-spacing:.6px}
+.loop a.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+:root[data-theme="dark"] .loop a.on{color:#0f1620}
+.loop a.done{border-color:var(--go);color:var(--go)}
+.log{max-height:260px;overflow-y:auto;font:12.5px/1.45 var(--mono)}
+.log div{padding:4px 0;border-bottom:1px dashed var(--line)}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font:600 12px var(--body);color:var(--muted)}
+.field input,.field select,.field textarea{padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+.field textarea{min-height:64px;resize:vertical}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.form .full{grid-column:1/-1}
+.banner{padding:10px 14px;border-radius:9px;display:block;margin-bottom:12px}
+.banner.hold{background:var(--hold-bg);color:var(--hold);border:1px solid var(--hold)}
+.banner.cond{background:var(--cond-bg);color:var(--cond);border:1px solid var(--cond)}
+.banner.go{background:var(--go-bg);color:var(--go);border:1px solid var(--go)}
+.banner.info{background:var(--paper);border:1px solid var(--line);color:var(--ink)}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font:600 11.5px var(--body);border:1px solid var(--line);background:var(--paper)}
+.chip.r{background:var(--hold-bg);color:var(--hold);border-color:transparent}.chip.g{background:var(--go-bg);color:var(--go);border-color:transparent}.chip.a{background:var(--cond-bg);color:var(--cond);border-color:transparent}
+.sos{width:100%;aspect-ratio:3/1;max-height:150px;border-radius:16px;border:0;background:var(--hold);color:#fff;font:700 40px var(--display);letter-spacing:2px;cursor:pointer;box-shadow:0 6px 0 #8e1b1b}
+.sos:active{transform:translateY(3px);box-shadow:0 3px 0 #8e1b1b}
+.eq{font:15px/1.6 "Cambria Math","STIX Two Math","Times New Roman",serif;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:6px 0;overflow-x:auto}
+.eq b{font-family:var(--mono);font-size:12px;color:var(--muted);float:right}
+.modal{position:fixed;inset:0;background:rgba(10,16,24,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal.on{display:flex}
+.modal .box{background:var(--panel);border-radius:12px;max-width:560px;width:100%;padding:18px;max-height:90vh;overflow:auto}
+svg text{fill:var(--ink)}
+.map{width:100%;height:auto;display:block;background:var(--paper);border-radius:8px;border:1px solid var(--line)}
+.hint{font-size:12px;color:var(--muted)}
+.range{width:100%}
+.toast{position:fixed;right:18px;bottom:18px;background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:8px;font-weight:600;opacity:0;transition:opacity .25s;z-index:60;pointer-events:none}
+.toast.on{opacity:1}
+.menu{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:980px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g21,.g12{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .rail{flex-direction:row;overflow-x:auto;height:auto}
+  .brand{border:0;padding:10px}.brand p,.rail .foot,.nav .grp{display:none}
+  .nav{flex-direction:row;padding:6px}.nav a{white-space:nowrap}
+  .g2,.g3,.g4,.form{grid-template-columns:1fr}.keys{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="TRIAD Guard modules">
+    <div class="brand">
+      <div class="logo"><div class="diamond"><span>TG</span></div><h1>TRIAD Guard</h1></div>
+      <p>Prototype decision-support tool for the TRIAD-QEHS framework · chemical road journeys</p>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="foot">Prototype v1.1 · supports, does not replace, expert judgement, law and company procedures.</div>
+  </aside>
+  <div class="main">
+    <header class="strip" id="strip"></header>
+    <main class="view" id="view" tabindex="-1"></main>
+  </div>
+</div>
+<div class="modal" id="modal" role="dialog" aria-modal="true"><div class="box" id="modalbox"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>'use strict';
+/* ================= TRIAD Guard – prototype implementing the TRIAD-QEHS measurement model (Eqs 1–9) ================= */
+const KEY='triadguard.v1.1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fx=(v,d=2)=>(v==null||isNaN(v))?'–':Number(v).toFixed(d);
+const pct=v=>(v==null||isNaN(v))?'–':(100*v).toFixed(0)+'%';
+const nowStr=()=>new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+const todayISO=()=>new Date().toISOString().slice(0,10);
+
+/* ---------- static definitions ---------- */
+const ROLES=['Driver','Dispatcher (Operations)','Workshop','QEHS manager'];
+const KEYS={J:{name:'Journey',color:'var(--kj)'},D:{name:'Driver',color:'var(--kd)'},V:{name:'Vehicle',color:'var(--kv)'}};
+// Table 4 default criteria. type c = critical (Eq.1), s = supporting with weight (Eq.2). src: 'manual' or auto rule id
+const CRITERIA={
+ J:[
+  {id:'j1',t:'c',txt:'Route approved for the load class (tunnel and bridge restrictions checked)',src:'manual'},
+  {id:'j2',t:'c',txt:'Emergency plan and contacts available for every route section',src:'manual'},
+  {id:'j3',t:'c',txt:'Delivery window allows legal driving and rest times',src:'auto:window'},
+  {id:'j4',t:'s',w:3,txt:'Rest and parking stops planned',src:'manual'},
+  {id:'j5',t:'s',w:3,txt:'Advisory speeds set for tanker curves and downgrades',src:'manual'},
+  {id:'j6',t:'s',w:2,txt:'Weather and security checked',src:'manual'},
+  {id:'j7',t:'s',w:2,txt:'Environmental receptors screened along the route',src:'auto:envscreen'},
+  {id:'j8',t:'s',w:1,txt:'Alternative route identified',src:'manual'}],
+ D:[
+  {id:'d1',t:'c',txt:'Valid licence and dangerous goods training for the load class',src:'auto:licence'},
+  {id:'d2',t:'c',txt:'Rest requirement before duty met',src:'auto:rest'},
+  {id:'d3',t:'c',txt:'Alcohol and drug check negative',src:'auto:alcohol'},
+  {id:'d9',t:'c',txt:'No disqualifying fatigue (KSS below 8 and at least 5 h sleep in last 24 h)',src:'auto:fatcrit'},
+  {id:'d4',t:'s',w:3,txt:'Fatigue self-check and sleep within company limit',src:'auto:fatigue'},
+  {id:'d5',t:'s',w:3,txt:'Route and load briefing completed and understood',src:'auto:quiz'},
+  {id:'d6',t:'s',w:2,txt:'Chronic health conditions managed',src:'manual'},
+  {id:'d7',t:'s',w:1,txt:'Recent coaching or telematics review completed',src:'manual'},
+  {id:'d8',t:'s',w:1,txt:'Familiar with route or recorded route hazards',src:'manual'}],
+ V:[
+  {id:'v1',t:'c',txt:'No open brake, tyre or lighting defect',src:'auto:defects'},
+  {id:'v2',t:'c',txt:'Tank, valve and seal integrity confirmed',src:'auto:tank'},
+  {id:'v3',t:'c',txt:'Load secured; documents and placards correct',src:'auto:load'},
+  {id:'v4',t:'s',w:3,txt:'Active safety systems functional (EBS/ABS, stability, collision warning)',src:'auto:active'},
+  {id:'v5',t:'s',w:2,txt:'Telematics and tank sensors functional',src:'auto:telem'},
+  {id:'v6',t:'s',w:2,txt:'Spill kit and personal protective equipment on board',src:'auto:spill'},
+  {id:'v7',t:'s',w:2,txt:'Preventive maintenance within interval',src:'auto:maint'},
+  {id:'v8',t:'s',w:1,txt:'Consumables checked (fuel, AdBlue, fluids)',src:'manual'}]
+};
+const INSPECT=[
+ {g:'Brakes, tyres and lights',crit:'v1',items:['Service brake air pressure and leaks','Brake stroke / adjustment within limits','Tyre tread depth and inflation (all axles)','Wheel nuts and rims','Head, brake, indicator and marker lights']},
+ {g:'Tank, valves and seals',crit:'v2',items:['Tank shell free of damage and leaks','Bottom and top valves closed and sealed','Manhole covers and gaskets secure','Pressure / vacuum relief device intact']},
+ {g:'Load and documents',crit:'v3',items:['Load secured / compartments correct','Transport document matches load','Orange plates and placards correct (UN number)','Instructions in writing / emergency card on board']},
+ {g:'Active safety systems',crit:'v4',items:['EBS/ABS warning lamp off','Electronic stability control functional','Forward collision warning functional']},
+ {g:'Telematics and sensors',crit:'v5',items:['GPS tracker reporting','Driver monitoring camera functional','Tank pressure / temperature sensor reporting']},
+ {g:'Spill and PPE',crit:'v6',items:['Spill kit complete (absorbent, drain cover, shovel)','PPE for the load class (gloves, goggles, suit)','Fire extinguishers charged']}
+];
+// Illustrative corridor (approximate geography; segment values are ILLUSTRATIVE, not data)
+const PLACES={'Port Klang':[101.39,3.00],'Shah Alam':[101.53,3.07],'Rawang':[101.58,3.32],'Tanjung Malim':[101.52,3.68],'Ipoh':[101.08,4.60],'Taiping':[100.74,4.85],'Prai':[100.40,5.36],'Kuala Selangor':[101.25,3.34],'Sabak Bernam':[100.98,3.68],'Teluk Intan':[101.02,4.02],'Sitiawan':[100.70,4.22]};
+const ROUTES={
+ A:{name:'Route A · Expressway corridor',segs:[
+  {a:'Port Klang',b:'Shah Alam',km:30,p:0.12,N:48000,E:2,hz:'Dense industrial and urban area'},
+  {a:'Shah Alam',b:'Rawang',km:45,p:0.10,N:35000,E:2,hz:'Heavy traffic interchanges'},
+  {a:'Rawang',b:'Tanjung Malim',km:55,p:0.08,N:12000,E:3,hz:'River crossings'},
+  {a:'Tanjung Malim',b:'Ipoh',km:120,p:0.14,N:15000,E:4,hz:'Long downgrades and curves'},
+  {a:'Ipoh',b:'Taiping',km:85,p:0.12,N:14000,E:3,hz:'Hilly section, heavy rain'},
+  {a:'Taiping',b:'Prai',km:75,p:0.09,N:30000,E:3,hz:'Coastal wetlands near route'}]},
+ B:{name:'Route B · Coastal federal road',segs:[
+  {a:'Port Klang',b:'Kuala Selangor',km:45,p:0.22,N:15000,E:4,hz:'Town centres, mangrove rivers'},
+  {a:'Kuala Selangor',b:'Sabak Bernam',km:50,p:0.20,N:8000,E:5,hz:'Paddy fields and irrigation canals'},
+  {a:'Sabak Bernam',b:'Teluk Intan',km:45,p:0.19,N:12000,E:5,hz:'Perak river crossing'},
+  {a:'Teluk Intan',b:'Sitiawan',km:50,p:0.18,N:10000,E:4,hz:'Two-lane road, overtaking risk'},
+  {a:'Sitiawan',b:'Taiping',km:85,p:0.17,N:15000,E:4,hz:'Small towns, school zones'},
+  {a:'Taiping',b:'Prai',km:75,p:0.09,N:30000,E:3,hz:'Coastal wetlands near route'}]}
+};
+const QUIZ=[
+ {q:'The load is UN1789 hydrochloric acid, class 8. What is the main hazard?',o:['Explosion','Corrosive liquid; irritating fumes when released','Radioactivity'],a:1},
+ {q:'If the tank leaks after a crash, where should people be moved?',o:['Downwind, close to the vehicle','Upwind and uphill, away from the spill','Into nearby drains to stay low'],a:1},
+ {q:'A fatigue warning sounds twice in 30 minutes. What does the plan require?',o:['Continue and open the window','Stop at the next safe rest area and report','Increase speed to finish sooner'],a:1}
+];
+const INDICATORS=[
+ {id:'gc',n:'Gate compliance',def:'Journeys released through the full three-key gate ÷ all journeys',type:'Active leading',dims:['S'],dir:'up',target:1,fmt:'pct'},
+ {id:'hr',n:'Hold rate',def:'Journeys held ÷ all journeys (monitored, no target)',type:'Active leading',dims:['S'],dir:'mon',fmt:'pct'},
+ {id:'cr',n:'Conditional release rate',def:'Conditional go decisions ÷ all journeys',type:'Active leading',dims:['S'],dir:'down',target:0.10,fmt:'pct'},
+ {id:'or',n:'Override ratio',def:'Releases against a HOLD advisory ÷ HOLD advisories',type:'Active leading',dims:['S'],dir:'down',target:0.05,fmt:'pct'},
+ {id:'pd',n:'Pre-departure defect detection',def:'Defects found before departure ÷ all defects found',type:'Active leading',dims:['Q','S'],dir:'up',target:0.90,fmt:'pct'},
+ {id:'dc',n:'Defect closure time',def:'Median hours from defect report to closure',type:'Active leading',dims:['Q'],dir:'down',target:24,fmt:'h'},
+ {id:'doc',n:'Documentation conformity',def:'Journeys with correct documents and placards ÷ audited journeys',type:'Passive leading',dims:['Q'],dir:'up',target:0.98,fmt:'pct'},
+ {id:'ls',n:'Load-securing conformity',def:'Loads passing securing check ÷ audited loads',type:'Passive leading',dims:['Q'],dir:'up',target:0.98,fmt:'pct'},
+ {id:'pdr',n:'Plan deviation rate',def:'Unplanned route deviations per 1,000 km',type:'Active leading',dims:['S','E'],dir:'down',target:0.5,fmt:'r'},
+ {id:'es',n:'Environmental route screening',def:'Journeys with receptors screened ÷ all journeys',type:'Passive leading',dims:['E'],dir:'up',target:1,fmt:'pct'},
+ {id:'sr',n:'Spill-readiness',def:'Vehicles with complete spill kit and trained driver ÷ vehicles checked',type:'Passive leading',dims:['E'],dir:'up',target:1,fmt:'pct'},
+ {id:'ff',n:'Fitness-for-duty completion',def:'Driver checks completed with evidence ÷ journeys',type:'Passive leading',dims:['H'],dir:'up',target:1,fmt:'pct'},
+ {id:'fw',n:'Fatigue warning rate',def:'Fatigue and distraction warnings per 1,000 km',type:'Active leading',dims:['H'],dir:'down',target:2,fmt:'r'},
+ {id:'sp',n:'Shipper pressure rate',def:'Shipper-driven window changes per 100 journeys',type:'Active leading',dims:['H','S'],dir:'down',target:5,fmt:'r'},
+ {id:'nm',n:'Near-miss reporting rate',def:'Near-miss reports per 100 journeys (rising target)',type:'Active leading',dims:['S'],dir:'up',target:10,fmt:'r'},
+ {id:'db',n:'Debrief completion',def:'Debriefs held within 24 h ÷ journeys',type:'Active leading',dims:['S'],dir:'up',target:0.95,fmt:'pct'},
+ {id:'lc',n:'Learning closure rate',def:'Actions closed within 30 days ÷ actions raised',type:'Active leading',dims:['Q','S'],dir:'up',target:0.80,fmt:'pct'},
+ {id:'se',n:'Serious event rate',def:'Crashes, releases and lost-time injuries per million km',type:'Lagging',dims:['S','E','H'],dir:'down',target:0.5,fmt:'r'}
+];
+const MAT_DIMS=[
+ {id:'gate',n:'Gate operation',a:['No formal gate; dispatcher judgement','Paper checklists for legal minimums; holds rare and unrecorded','Three keys verified with evidence; holds and two-person mitigations recorded','Thresholds tuned from data; gate decisions audited monthly','Drivers and shippers propose criteria changes; holds treated as success']},
+ {id:'regate',n:'Live re-gating',a:['No monitoring during trips','Phone contact only; no defined triggers','Defined triggers re-open keys; actions recorded','Telematics and sensor triggers in real time','Triggers reviewed and refined with drivers']},
+ {id:'debrief',n:'Debrief and reporting',a:['Investigation only after injury or release','Incidents reported to meet legal duties','Debrief after each journey; near misses reported','Debrief findings analysed across journeys','Lessons shared across carriers and shippers']},
+ {id:'learn',n:'Learning closure',a:['No action tracking','Actions raised, rarely closed','Actions tracked with owners and dates','Register updated monthly from trends','Safety-II learning from normal trips; sustained closure']},
+ {id:'data',n:'Data and indicators',a:['Lagging counts only','Lagging counts and audit findings','Passive and active leading indicators per key','Indicators linked to outcomes; trend analyses','Validated indicator set; resilience assessment']}
+];
+const MAT_LEVELS=['Reactive','Compliant','Proactive','Predictive','Generative'];
+const TRIGGERS=[
+ {id:'fat',k:'D',n:'Fatigue / distraction warnings (2 in 30 min)',acts:['Stop at next safe rest area for at least 30 min','Hand over to relief driver']},
+ {id:'dev',k:'J',n:'Unplanned route deviation',acts:['Return to approved route','Approve new route through dispatcher (risk re-checked)']},
+ {id:'wx',k:'J',n:'Severe weather / flooding ahead',acts:['Hold at safe parking until warning lifts','Reroute to approved alternative']},
+ {id:'tank',k:'V',n:'Tank pressure or temperature alarm',acts:['Stop at safe location and inspect','Call emergency contact and isolate area']},
+ {id:'brk',k:'V',n:'Brake or tyre temperature alarm',acts:['Reduce speed and stop at safe bay to cool and inspect']},
+ {id:'risk',k:'J',n:'Real-time risk estimate above threshold',acts:['Reduce speed and increase following distance','Hold until risk falls below threshold']}
+];
+
+/* ---------- seeded PRNG for synthetic demo fleet ---------- */
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;}}
+function makeFleet(){
+  const r=rng(20261104),out=[];const months=['May','Jun','Jul','Aug','Sep','Oct'];
+  const pick=(pf,pp)=>{const x=r();return x<pf?1:(x<pf+pp?0.5:0);};
+  for(let i=0;i<72;i++){
+    const m=Math.floor(i/12); const qual=0.55+0.07*m; // improving over months
+    const y={};['J','D','V'].forEach(K=>CRITERIA[K].filter(c=>c.t==='s').forEach(c=>y[c.id]=pick(qual+0.15*r(),0.2)));
+    const crit={J:r()>0.03?1:0,D:r()>0.04?1:0,V:r()>0.05?1:0};
+    const km=320+Math.round(r()*140);
+    out.push({id:'TG-'+(2026)+'-'+String(300+i).padStart(4,'0'),month:months[m],y,crit,km,
+      fat:Math.round(r()*2.2*km/1000*(1.4-0.08*m)*10)/10, dev:r()<0.05?1:0, sp:r()<(0.14-0.015*m)?1:0,
+      nm:r()<(0.05+0.03*m)?1:0, debrief:r()<(0.78+0.03*m), docOK:r()>0.02, loadOK:r()>0.025, env:r()<(0.7+0.05*m), spill:r()>0.04, ff:r()>0.03,
+      defPre:Math.round(r()*2), defRoad:r()<0.08?1:0, defHrs:8+Math.round(r()*30), serious:r()<0.004?1:0, override:0});
+  }
+  return out;
+}
+
+/* ---------- default state ---------- */
+function defaults(){
+  const crit={};
+  ['J','D','V'].forEach(K=>CRITERIA[K].forEach(c=>{crit[c.id]={y:c.t==='c'?1:1,w:c.w||0,ev:''};}));
+  // demo starting values: realistic, partly ready
+  Object.assign(crit.j4,{y:1,ev:'Rest at R&R Tapah planned'});Object.assign(crit.j5,{y:0.5,ev:'Advisory set for 2 of 3 downgrades'});
+  Object.assign(crit.j6,{y:1});Object.assign(crit.j8,{y:1});Object.assign(crit.d6,{y:1});Object.assign(crit.d7,{y:0});Object.assign(crit.d8,{y:0.5});
+  Object.assign(crit.v8,{y:1});
+  const insp={};INSPECT.forEach(g=>g.items.forEach((it,i)=>insp[g.crit+'-'+i]='pass'));insp['v5-1']='fail';
+  return {
+    v:1, role:'Dispatcher (Operations)', theme:null,
+    trip:{id:'TG-2026-0417',un:'UN1789',sub:'Hydrochloric acid solution',cls:'8',pg:'II',qty:'20,000 L tanker',origin:'Port Klang',dest:'Prai, Penang',driver:'Driver A (demo)',vehicle:'Tanker T-07 (demo)',shipper:'Demo Chemicals Sdn Bhd',window:9,route:'A',speed:65,restStops:2,envScreened:true},
+    crit, weights:null,
+    theta:{G:0.80,C:0.60}, omega:{Q:0.25,E:0.25,H:0.25,S:0.25}, lambda:5000, minRest:10,
+    driver:{licExp:'2027-08-31',dgExp:'2027-02-28',rest:11,sleep:6.5,kss:6,alcohol:'negative',quiz:[null,null,null]},
+    vehicle:{insp,defects:[{id:1,txt:'Driver monitoring camera intermittent',grp:'v5',sev:'minor',open:true,t:nowStr()}],kmSince:14200,interval:20000},
+    gate:{mitig:'',sigOps:'',sigQ:'',released:false,decisionAtRelease:null,override:false},
+    live:{km:0,running:false,events:[],active:{},stage:'plan'},
+    debriefs:[],actions:[{id:1,txt:'Add advisory speed for Menora downgrade section to route plan',owner:'Route planner',due:todayISO(),open:true,src:'Debrief TG-2026-0402'}],
+    register:[],audit:[{t:nowStr(),who:'System',msg:'Demo trip TG-2026-0417 loaded (illustrative data).'}],
+    maturity:{gate:3,regate:2,debrief:3,learn:2,data:2},
+    sos:{radius:'',active:false},
+    fleet:makeFleet()
+  };
+}
+let S;
+function load(){try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.v===1){S=o;return;}}}catch(e){} S=defaults();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function audit(msg){S.audit.unshift({t:nowStr(),who:S.role,msg});if(S.audit.length>200)S.audit.length=200;}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2200);}
+
+/* ---------- auto-derived criteria ---------- */
+function drivingHours(){const r=ROUTES[S.trip.route];const km=r.segs.reduce((a,s)=>a+s.km,0);return km/S.trip.speed;}
+function requiredHours(){return drivingHours()+0.5*S.trip.restStops+0.75;} // +0.75 h handling buffer
+function inspGroupRatio(crit){const g=INSPECT.find(x=>x.crit===crit);let p=0,n=0;g.items.forEach((_,i)=>{const v=S.vehicle.insp[crit+'-'+i];if(v==='na')return;n++;if(v==='pass')p++;});return n?p/n:1;}
+function openDefect(crit,sevCrit){return S.vehicle.defects.some(d=>d.open&&d.grp===crit&&(!sevCrit||d.sev==='critical'));}
+function auto(c){
+  const d=S.driver,today=todayISO();
+  switch(c.src){
+    case 'auto:window': return requiredHours()<=S.trip.window?1:0;
+    case 'auto:envscreen': return S.trip.envScreened?1:0;
+    case 'auto:licence': return (d.licExp>=today&&d.dgExp>=today)?1:0;
+    case 'auto:rest': return d.rest>=S.minRest?1:0;
+    case 'auto:alcohol': return d.alcohol==='negative'?1:0;
+    case 'auto:fatcrit': return (d.kss>=8||d.sleep<5)?0:1;
+    case 'auto:fatigue': return (d.kss<=5&&d.sleep>=7)?1:((d.kss<=7&&d.sleep>=5)?0.5:0);
+    case 'auto:quiz': {const ok=d.quiz.filter((v,i)=>v===QUIZ[i].a).length;return ok===3?1:(ok===2?0.5:0);}
+    case 'auto:defects': return (inspGroupRatio('v1')===1&&!openDefect('v1'))?1:0;
+    case 'auto:tank': return (inspGroupRatio('v2')===1&&!openDefect('v2'))?1:0;
+    case 'auto:load': return (inspGroupRatio('v3')===1&&!openDefect('v3'))?1:0;
+    case 'auto:active': return snap(inspGroupRatio('v4')*(openDefect('v4')?0.5:1));
+    case 'auto:telem': return snap(inspGroupRatio('v5')*(openDefect('v5')?0.5:1));
+    case 'auto:spill': return snap(inspGroupRatio('v6'));
+    case 'auto:maint': {const r=S.vehicle.kmSince/S.vehicle.interval;return r<=1?1:(r<=1.1?0.5:0);}
+  }
+  return S.crit[c.id].y;
+}
+function snap(x){return x>=0.999?1:(x>=0.5?0.5:0);}
+const W=c=>S.crit[c.id].w||c.w;
+/* ---------- Eqs 1–5 ---------- */
+function keyEval(K,yOverride,critOverride,wOverride){
+  const cs=CRITERIA[K];
+  const crit=cs.filter(c=>c.t==='c');const sup=cs.filter(c=>c.t==='s');
+  const x=crit.map(c=>critOverride!=null?critOverride:auto(c));
+  const status=x.reduce((a,b)=>a*b,1); // Eq.1
+  let num=0,den=0;sup.forEach(c=>{const w=wOverride?wOverride(c):W(c);const y=yOverride?yOverride[c.id]:auto(c);num+=w*y;den+=w;});
+  return {K,status,S:den?num/den:0,x,crit,sup};
+}
+function gateEval(){
+  const k={J:keyEval('J'),D:keyEval('D'),V:keyEval('V')};
+  const R=k.J.status*k.D.status*k.V.status; // Eq.3
+  const minS=Math.min(k.J.S,k.D.S,k.V.S);
+  const JRI=R*minS; // Eq.4
+  const mean=(k.J.S+k.D.S+k.V.S)/3;
+  const dec=decide(JRI,R); // Eq.5
+  const weakest=['J','D','V'].reduce((a,b)=>k[b].S<k[a].S?b:a,'J');
+  // live re-gating Eq.6
+  const live={};['J','D','V'].forEach(K=>live[K]=k[K].status*(Object.values(S.live.active).some(e=>e.k===K)?0:1));
+  return {k,R,JRI,mean,dec,weakest,live};
+}
+function decide(JRI,R,th){th=th||S.theta;if(R===0)return 'HOLD';if(JRI>=th.G)return 'GO';if(JRI>=th.C)return 'CONDITIONAL';return 'HOLD';}
+const decCls=d=>d==='GO'?'go':(d==='CONDITIONAL'?'cond':'hold');
+const decLbl=d=>d==='CONDITIONAL'?'CONDITIONAL GO':d;
+
+/* ---------- route risk Eq.7 ---------- */
+function routeRisk(id,lam){lam=lam==null?S.lambda:lam;const segs=ROUTES[id].segs;let rr=0;const parts=segs.map(s=>{const v=s.p*1e-6*s.km*(s.N+lam*s.E);rr+=v;return v;});return {rr,parts,km:segs.reduce((a,s)=>a+s.km,0)};}
+
+/* ---------- fleet indicators Eq.8 ---------- */
+function fleetDecisions(fl,opts){
+  opts=opts||{};const th=opts.theta||S.theta;
+  return fl.map(j=>{const ev={};['J','D','V'].forEach(K=>{const e=keyEval(K,j.y,null,opts.w);ev[K]={status:j.crit[K],S:e.S};});
+    const R=ev.J.status*ev.D.status*ev.V.status;const JRI=R*Math.min(ev.J.S,ev.D.S,ev.V.S);return {R,JRI,dec:decide(JRI,R,th),mean:(ev.J.S+ev.D.S+ev.V.S)/3};});
+}
+function indicators(){
+  const fl=S.fleet,n=fl.length,dec=fleetDecisions(fl),km=fl.reduce((a,j)=>a+j.km,0);
+  const holds=dec.filter(d=>d.dec==='HOLD').length,cond=dec.filter(d=>d.dec==='CONDITIONAL').length;
+  const ov=fl.filter(j=>j.override).length+(S.gate.override?1:0);
+  const pre=fl.reduce((a,j)=>a+j.defPre,0),road=fl.reduce((a,j)=>a+j.defRoad,0);
+  const hrs=fl.map(j=>j.defHrs).sort((a,b)=>a-b);const med=hrs[Math.floor(hrs.length/2)];
+  const sessNM=S.debriefs.reduce((a,d)=>a+(d.nm?d.nm.length:0),0);
+  const acts=S.actions.length+24,closed=S.actions.filter(a=>!a.open).length+19; // demo only: 24 seeded historical actions, 19 closed
+  const v={gc:1-(ov/n),hr:holds/n,cr:cond/n,or:holds?ov/holds:0,pd:(pre)/(pre+road||1),dc:med,
+    doc:fl.filter(j=>j.docOK).length/n,ls:fl.filter(j=>j.loadOK).length/n,pdr:fl.reduce((a,j)=>a+j.dev,0)/km*1000,
+    es:fl.filter(j=>j.env).length/n,sr:fl.filter(j=>j.spill).length/n,ff:fl.filter(j=>j.ff).length/n,
+    fw:fl.reduce((a,j)=>a+j.fat,0)/km*1000,sp:fl.reduce((a,j)=>a+j.sp,0)/n*100,nm:(fl.reduce((a,j)=>a+j.nm,0)+sessNM)/n*100,
+    db:fl.filter(j=>j.debrief).length/n,lc:closed/acts,se:fl.reduce((a,j)=>a+j.serious,0)/km*1e6};
+  const rows=INDICATORS.map(I=>{const o=v[I.id];let a=null;
+    if(I.dir==='up')a=Math.min(1,o/I.target);else if(I.dir==='down')a=o===0?1:Math.min(1,I.target/o);
+    return Object.assign({},I,{obs:o,a});});
+  const dims={};['Q','E','H','S'].forEach(d=>{const r=rows.filter(x=>x.dims.includes(d)&&x.a!=null);dims[d]=r.reduce((s,x)=>s+x.a,0)/r.length;});
+  const QPI=['Q','E','H','S'].reduce((s,d)=>s+S.omega[d]*dims[d],0);
+  return {rows,dims,QPI,n,km,holds,cond,dec};
+}
+/* ---------- maturity Eq.9 ---------- */
+function maturity(){const m=MAT_DIMS.map(d=>S.maturity[d.id]);const mean=m.reduce((a,b)=>a+b,0)/m.length;const L=Math.min(Math.floor(mean),Math.min(...m)+1);return {m,mean,L};}
+
+/* ================= rendering ================= */
+const ICONS={
+ overview:'<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
+ journey:'<path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2zM9 6v14M15 4v14"/>',
+ driver:'<circle cx="12" cy="7" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+ vehicle:'<path d="M2 16V8h11v8M13 11h4l3 3v2h-7"/><circle cx="6" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+ gate:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+ live:'<path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+ debrief:'<path d="M4 4h16v12H8l-4 4z"/><path d="M8 8h8M8 12h5"/>',
+ emergency:'<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
+ dashboard:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ maturity:'<path d="M4 20h4v-4h4v-4h4V8h4"/>',
+ calibration:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+ method:'<path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8M8 18h5"/>'
+};
+const TABS=[
+ ['g','Trip'],['overview','Overview'],['journey','Journey key'],['driver','Driver key'],['vehicle','Vehicle key'],['gate','Readiness gate'],
+ ['g','On the road'],['live','Live trip'],['emergency','Emergency'],['debrief','Debrief & learning'],
+ ['g','Management'],['dashboard','QEHS dashboard'],['maturity','Maturity'],['calibration','Calibration'],['method','Method']
+];
+function icon(id){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[id]}</svg>`;}
+function nav(){
+  const G=gateEval(),cur=route();
+  const dot=id=>{if(id==='journey'||id==='driver'||id==='vehicle'){const K={journey:'J',driver:'D',vehicle:'V'}[id];const e=G.k[K];return e.status===0?'r':(e.S>=S.theta.G?'g':(e.S>=S.theta.C?'a':'r'));}
+    if(id==='gate')return {GO:'g',CONDITIONAL:'a',HOLD:'r'}[G.dec];if(id==='live')return S.gate.released?(Object.keys(S.live.active).length?'r':'g'):'';if(id==='emergency')return S.sos.active?'r':'';return '';};
+  $('#nav').innerHTML=TABS.map(t=>t[0]==='g'?`<div class="grp">${t[1]}</div>`:`<a href="#${t[0]}" class="${cur===t[0]?'active':''}" ${cur===t[0]?'aria-current="page"':''}>${icon(t[0])}<span>${t[1]}</span>${dot(t[0])?`<i class="dot ${dot(t[0])}"></i>`:''}</a>`).join('');
+}
+function strip(){
+  const G=gateEval(),t=S.trip;
+  const status=S.gate.released?(Object.keys(S.live.active).length?'<span class="pill hold">ON ROAD · KEY RE-OPENED</span>':'<span class="pill go">RELEASED · ON ROAD</span>'):`<span class="pill ${decCls(G.dec)}">${decLbl(G.dec)} · JRI ${fx(G.JRI)}</span>`;
+  $('#strip').innerHTML=`
+   <div class="f"><b>Trip</b><span class="mono">${esc(t.id)}</span></div>
+   <div class="f"><b>Load</b><span><span class="un">${esc(t.un)}</span> ${esc(t.sub)} · class ${esc(t.cls)}</span></div>
+   <div class="f"><b>Route</b><span>${esc(t.origin)} → ${esc(t.dest)}</span></div>
+   <div class="f"><b>Driver · vehicle</b><span>${esc(t.driver)} · ${esc(t.vehicle)}</span></div>
+   <div class="sp"></div>${status}
+   <div class="role"><label for="roleSel" class="small muted">Signed in as</label><select id="roleSel" data-chg="role">${ROLES.map(r=>`<option ${r===S.role?'selected':''}>${r}</option>`).join('')}</select></div>
+   <button class="btn" data-act="theme" title="Switch light or dark theme"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>Theme</button>`;
+}
+function route(){const h=(location.hash||'').slice(1);return TABS.some(t=>t[0]===h)?h:'overview';}
+function render(){
+  const r=route();nav();strip();
+  const v=VIEWS[r]();$('#view').innerHTML=v;
+  if(AFTER[r])AFTER[r]();
+  save();
+}
+
+/* ---------- shared widgets ---------- */
+function gauge(v,lbl,th){ // semicircle gauge 0..1 with threshold ticks
+  const a=Math.PI*(1-Math.max(0,Math.min(1,v))),cx=110,cy=100,r=80;
+  const x=cx+r*Math.cos(a),y=cy-r*Math.sin(a);
+  const arc=(f,t,c)=>{const a1=Math.PI*(1-f),a2=Math.PI*(1-t);return `<path d="M${cx+r*Math.cos(a1)} ${cy-r*Math.sin(a1)} A${r} ${r} 0 0 1 ${cx+r*Math.cos(a2)} ${cy-r*Math.sin(a2)}" stroke="${c}" stroke-width="16" fill="none"/>`;};
+  th=th||S.theta;const col=v>=th.G?'var(--go)':(v>=th.C?'var(--cond)':'var(--hold)');
+  return `<svg viewBox="0 0 220 130" style="width:100%;max-width:260px" role="img" aria-label="${lbl} ${fx(v)}">
+   ${arc(0,th.C,'var(--hold-bg)')}${arc(th.C,th.G,'var(--cond-bg)')}${arc(th.G,1,'var(--go-bg)')}
+   ${v>0?arc(0,Math.min(v,1),col).replace('stroke-width="16"','stroke-width="8"'):''}
+   <line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="6" fill="var(--ink)"/>
+   <text x="${cx}" y="${cy+26}" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="22">${fx(v)}</text>
+   <text x="18" y="${cy+16}" font-size="10" fill="var(--muted)">0</text><text x="196" y="${cy+16}" font-size="10">1</text></svg>`;
+}
+function keyCard(K,e,live){
+  const ok=e.status===1&&(live==null||live===1);const cls=!ok?'bad':(e.S>=S.theta.G?'ok':(e.S>=S.theta.C?'mid':'bad'));
+  return `<div class="key ${cls}"><div class="kn" style="color:${KEYS[K].color}">${KEYS[K].name} key (${K})</div>
+   <svg viewBox="0 0 24 24" fill="none" stroke="${cls==='ok'?'var(--go)':(cls==='mid'?'var(--cond)':'var(--hold)')}" stroke-width="2" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/>${ok?'<path d="M8 10V7a4 4 0 0 1 7.5-2"/>':'<path d="M8 10V7a4 4 0 0 1 8 0v3"/>'}</svg>
+   <div class="ks">${fx(e.S)}</div><div class="small">critical ${e.x.filter(x=>x===1).length}/${e.x.length} met · status ${e.status}${live===0?' · <b style="color:var(--hold)">re-opened</b>':''}</div>
+   <div class="bar" style="margin-top:8px"><i style="width:${100*e.S}%;background:${KEYS[K].color}"></i></div></div>`;
+}
+function critList(K){
+  return `<div class="crit">${CRITERIA[K].map(c=>{const y=auto(c),isAuto=c.src!=='manual';
+    const ctrl=isAuto?`<span class="chip ${y===1?'g':(y===0.5?'a':'r')}">${c.t==='c'?(y===1?'Met':'Not met'):(y===1?'Met':(y===0.5?'Partly':'Not met'))} · auto</span>`
+      :`<div class="seg" role="group" aria-label="${esc(c.txt)}">${(c.t==='c'?[[1,'Met','y'],[0,'Not met','n']]:[[1,'Met','y'],[0.5,'Partly','p'],[0,'Not met','n']]).map(o=>`<button data-act="setY" data-id="${c.id}" data-y="${o[0]}" class="${y===o[0]?'on '+o[2]:''}">${o[1]}</button>`).join('')}</div>`;
+    return `<div class="citem ${c.t}"><div><div class="t">${esc(c.txt)}${c.t==='s'?`<span class="wt" title="weight w">w=${W(c)}</span>`:'<span class="wt" style="background:var(--hold)" title="critical criterion">critical</span>'}</div>
+      <div class="e">${isAuto?'Derived automatically from the inputs on this page':'Verified manually'}${S.crit[c.id].ev?' · evidence: '+esc(S.crit[c.id].ev):''}</div></div>${ctrl}</div>`;}).join('')}</div>`;
+}
+function eqKey(K){const e=keyEval(K);const parts=e.sup.map(c=>`${W(c)}×${auto(c)}`).join(' + ');const den=e.sup.reduce((a,c)=>a+W(c),0);
+  return `<div class="eq">${K} = ∏ x<sub>i</sub> = ${e.x.join(' × ')} = <b>Eq. 1</b><strong>${e.status}</strong><br>S<sub>${K}</sub> = (${parts}) / ${den} = <strong>${fx(e.S)}</strong> <b>Eq. 2</b></div>`;}
+
+/* ================= VIEWS ================= */
+const VIEWS={},AFTER={};
+VIEWS.overview=()=>{
+  const G=gateEval(),I=indicators(),M=maturity();const st=S.live.stage;
+  const stages=[['plan','Plan','journey'],['brief','Brief','driver'],['drive','Drive','live'],['debrief','Debrief','debrief'],['improve','Improve','debrief']];
+  const idx=stages.findIndex(s=>s[0]===st);
+  const next=G.dec==='HOLD'?(G.R===0?`Fix the failed critical criterion in the <b>${KEYS[['J','D','V'].find(K=>G.k[K].status===0)].name} key</b>.`:`Raise readiness of the <b>${KEYS[G.weakest].name} key</b> (weakest, S = ${fx(G.k[G.weakest].S)}).`)
+    :G.dec==='CONDITIONAL'?`Record a mitigation and two signatures on the <a href="#gate">Readiness gate</a>, or improve the <b>${KEYS[G.weakest].name} key</b>.`:(S.gate.released?'Trip is on the road. Monitor <a href="#live">Live trip</a>.':'All keys ready. Release the trip on the <a href="#gate">Readiness gate</a>.');
+  return `<span class="tag">Trip overview</span><h2>One journey, three keys, one decision</h2>
+  <p class="lede">TRIAD Guard applies the TRIAD-QEHS framework to a single chemical road journey. Each key is scored from the evidence entered on its page; the trip is released only when all three keys are ready (non-compensatory gate). Values shown are an illustrative demo trip.</p>
+  <div class="loop" style="margin-bottom:14px">${stages.map((s,i)=>`<a href="#${s[2]}" class="${i===idx?'on':(i<idx?'done':'')}">${i+1} ${s[1]}</a>`).join('')}</div>
+  <div class="grid g21">
+   <div class="card"><h3>Three keys <span class="r">Eqs 1–3</span></h3><div class="keys">${['J','D','V'].map(K=>keyCard(K,G.k[K],S.gate.released?G.live[K]:null)).join('')}</div>
+     <div class="banner ${decCls(G.dec)}" style="margin:14px 0 0"><div><b>Next action:</b> ${next}</div></div></div>
+   <div class="card" style="text-align:center"><h3>Journey Readiness Index <span class="r">Eq. 4</span></h3>${gauge(G.JRI,'JRI')}
+     <div class="decision ${decCls(G.dec)}" style="padding:10px;margin-top:6px"><div class="d" style="font-size:30px">${decLbl(G.dec)}</div><div class="small">mean of keys would be ${fx(G.mean)} · gate uses the weakest key</div></div></div>
+  </div>
+  <div class="grid g4" style="margin-top:14px">
+   <div class="card kpi"><b>Route risk (Eq. 7)</b><span class="num">${fx(routeRisk(S.trip.route).rr,3)}</span><span class="small muted">${ROUTES[S.trip.route].name}</span></div>
+   <div class="card kpi"><b>Fleet QPI (Eq. 8)</b><span class="num">${fx(I.QPI)}</span><span class="small muted">${['Q','E','H','S'].map(d=>`${d} ${fx(I.dims[d])}`).join(' · ')}</span></div>
+   <div class="card kpi"><b>Maturity (Eq. 9)</b><span class="num">${M.L}</span><span class="small muted">${MAT_LEVELS[M.L-1]} · mean ${fx(M.mean,1)}</span></div>
+   <div class="card kpi"><b>Open actions</b><span class="num">${S.actions.filter(a=>a.open).length}</span><span class="small muted"><a href="#debrief">Debrief & learning</a></span></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+   <div class="card"><h3>Trip details <span class="r">edit</span></h3><form class="form" data-form="trip">
+     ${[['id','Trip ID'],['un','UN number'],['sub','Proper shipping name'],['cls','Class'],['qty','Quantity / unit'],['origin','Origin'],['dest','Destination'],['driver','Driver'],['vehicle','Vehicle'],['shipper','Shipper / consignor']].map(f=>`<div class="field"><label for="t_${f[0]}">${f[1]}</label><input id="t_${f[0]}" data-trip="${f[0]}" value="${esc(S.trip[f[0]])}"></div>`).join('')}
+   </form></div>
+   <div class="card"><h3>Audit trail <span class="r">every decision is logged</span></h3><div class="log">${S.audit.slice(0,40).map(a=>`<div><span class="muted">${esc(a.t)} · ${esc(a.who)}</span><br>${esc(a.msg)}</div>`).join('')}</div>
+     <div class="row" style="margin-top:10px"><button class="btn" data-act="export">Copy trip record (JSON)</button><button class="btn" data-act="import">Import record</button><button class="btn red" data-act="reset">Reset demo</button></div></div>
+  </div>`;
+};
+/* ----- Journey ----- */
+function mapSVG(opts){
+  opts=opts||{};const k=250,ox=100.2,oy=5.55;const P=n=>{const c=PLACES[n];return [(c[0]-ox)*k+20,(oy-c[1])*k+20];};
+  const routeLine=id=>{const s=ROUTES[id].segs;return [s[0].a].concat(s.map(x=>x.b)).map(P);};
+  let out=`<svg class="map" viewBox="0 0 420 690" role="img" aria-label="Schematic corridor map">
+   <rect x="0" y="0" width="420" height="690" fill="var(--paper)"/>
+   <text x="14" y="24" font-size="12" fill="var(--muted)">Schematic, not to scale · Strait of Malacca to the west</text>
+   <path d="M0 140 L60 120 L90 300 L170 420 L250 560 L290 690 L0 690Z" fill="var(--line)" opacity=".55"/>`;
+  ['B','A'].forEach(id=>{const pts=routeLine(id);const sel=S.trip.route===id;
+    out+=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${id==='A'?'var(--navy)':'var(--accent)'}" stroke-width="${sel?6:3}" stroke-dasharray="${sel?'':'6 5'}" stroke-linecap="round" stroke-linejoin="round" opacity="${sel?1:.55}"/>`;});
+  // segment hazard markers on selected route
+  const segs=ROUTES[S.trip.route].segs;segs.forEach((s,i)=>{const a=P(s.a),b=P(s.b),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];const reg=S.register.filter(r=>r.route===S.trip.route&&r.seg===i).length;
+    out+=`<g><circle cx="${m[0]}" cy="${m[1]}" r="${8+s.E*1.6}" fill="var(--kv)" opacity=".18"/><path d="M${m[0]} ${m[1]-9} l8 14 h-16z" fill="var(--accent)" stroke="var(--ink)" stroke-width="1"/><text x="${m[0]+12}" y="${m[1]+4}" font-size="10.5">${i+1}${reg?' ★':''}</text></g>`;});
+  Object.keys(PLACES).forEach(n=>{const onA=ROUTES.A.segs.some(s=>s.a===n||s.b===n),onB=ROUTES.B.segs.some(s=>s.a===n||s.b===n);const p=P(n);
+    const right=onA&&!onB&&p[0]<300;out+=`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/><text x="${p[0]+(right?9:-9)}" y="${p[1]+4}" font-size="11.5" text-anchor="${right?'start':'end'}" font-weight="600">${n}</text>`;});
+  if(opts.truck!=null){const pts=routeLine(S.trip.route);const km=opts.truck;let acc=0,pos=pts[0];for(let i=0;i<segs.length;i++){if(km<=acc+segs[i].km){const f=(km-acc)/segs[i].km;pos=[pts[i][0]+f*(pts[i+1][0]-pts[i][0]),pts[i][1]+f*(pts[i+1][1]-pts[i][1])];break;}acc+=segs[i].km;pos=pts[i+1];}
+    if(opts.radius){const rr=Math.max(10,opts.radius/1000*k/111);out+=`<circle cx="${pos[0]}" cy="${pos[1]}" r="${rr}" fill="var(--hold)" opacity=".18" stroke="var(--hold)" stroke-dasharray="4 3"/>`;}
+    out+=`<g><circle cx="${pos[0]}" cy="${pos[1]}" r="11" fill="${Object.keys(S.live.active).length||S.sos.active?'var(--hold)':'var(--go)'}" stroke="#fff" stroke-width="2.5"/><text x="${pos[0]}" y="${pos[1]+4}" font-size="10" text-anchor="middle" fill="#fff" style="fill:#fff" font-weight="700">TG</text></g>`;}
+  out+=`<g transform="translate(240,40)"><rect width="170" height="84" rx="6" fill="var(--panel)" stroke="var(--line)"/><line x1="10" y1="16" x2="36" y2="16" stroke="var(--navy)" stroke-width="5"/><text x="42" y="20" font-size="10.5">Route A expressway</text><line x1="10" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="3"/><text x="42" y="38" font-size="10.5">Route B coastal road</text><path d="M23 46 l7 12 h-14z" fill="var(--accent)" stroke="var(--ink)"/><text x="42" y="57" font-size="10.5">Segment hazard (number)</text><text x="18" y="76" font-size="11">★</text><text x="42" y="76" font-size="10.5">Lesson from a debrief</text></g></svg>`;
+  return out;
+}
+VIEWS.journey=()=>{
+  const e=keyEval('J'),RA=routeRisk('A'),RB=routeRisk('B'),best=RA.rr<=RB.rr?'A':'B',req=requiredHours();
+  const segs=ROUTES[S.trip.route].segs,rr=routeRisk(S.trip.route);
+  return `<span class="tag">Key J · Pillar: journey management</span><h2>Plan the journey</h2>
+  <p class="lede">Choose the route with the lowest route risk (Eq. 7), check that the delivery window allows legal driving and rest, and verify the journey criteria. <b>Segment values are illustrative</b>; replace them with your own accident rates, population and environmental data.</p>
+  <div class="grid g12">
+   <div class="card">${mapSVG()}</div>
+   <div class="grid">
+    <div class="card"><h3>Route choice <span class="r">RR = Σ p<sub>s</sub> ℓ<sub>s</sub> (N<sub>s</sub> + λE<sub>s</sub>)</span></h3>
+     <div class="grid g2">${['A','B'].map(id=>{const R=routeRisk(id);return `<button class="card" data-act="route" data-r="${id}" style="text-align:left;cursor:pointer;border:2px solid ${S.trip.route===id?'var(--accent)':'var(--line)'}"><div class="small muted">${ROUTES[id].name}</div><div class="num" style="font-size:26px">${fx(R.rr,3)}</div><div class="small">${R.km} km · ${fx(R.km/S.trip.speed,1)} h driving ${best===id?'<span class="chip g">lowest risk</span>':''}</div></button>`;}).join('')}</div>
+     <div class="field" style="margin-top:10px"><label for="lam">Environmental weight λ (persons-equivalent per receptor point): <b>${S.lambda}</b></label><input class="range" id="lam" type="range" min="0" max="20000" step="1000" value="${S.lambda}" data-chg="lambda"><span class="hint">Raise λ to give rivers, paddy irrigation and wetlands more weight. Watch the ranking of A and B change.</span></div>
+    </div>
+    <div class="card"><h3>Delivery window check <span class="r">critical criterion j3</span></h3>
+     <div class="form">
+      <div class="field"><label for="win">Shipper delivery window (h)</label><input id="win" type="number" min="1" max="24" step="0.5" value="${S.trip.window}" data-chg="window"></div>
+      <div class="field"><label for="spd">Planned average speed (km/h)</label><input id="spd" type="number" min="30" max="90" value="${S.trip.speed}" data-chg="speed"></div>
+      <div class="field"><label for="rst">Planned rest stops (30 min each)</label><input id="rst" type="number" min="0" max="6" value="${S.trip.restStops}" data-chg="rests"></div>
+      <div class="field"><label>Required time incl. 45 min handling</label><div class="num" style="font-size:24px;color:${req<=S.trip.window?'var(--go)':'var(--hold)'}">${fx(req,1)} h</div></div>
+     </div>${req>S.trip.window?`<div class="banner hold" style="margin-top:8px">The window is ${fx(req-S.trip.window,1)} h too short. j3 fails and the trip is held. Record this as shipper pressure in the debrief.</div>`:''}
+     <label class="row small" style="margin-top:8px"><input type="checkbox" data-chg="env" ${S.trip.envScreened?'checked':''}> Environmental receptors screened for the selected route (criterion j7)</label></div>
+   </div></div>
+  <div class="card" style="margin-top:14px"><h3>Segments of ${esc(ROUTES[S.trip.route].name)} <span class="r">illustrative values</span></h3><div class="tw"><table><thead><tr><th>#</th><th>Segment</th><th class="n">km</th><th class="n">p<sub>s</sub> (per 10⁶ veh-km)</th><th class="n">N<sub>s</sub> exposed</th><th class="n">E<sub>s</sub> (0–5)</th><th class="n">Risk share</th><th>Hazard / lessons</th></tr></thead><tbody>
+   ${segs.map((s,i)=>`<tr><td>${i+1}</td><td>${s.a} → ${s.b}</td><td class="n">${s.km}</td><td class="n">${s.p.toFixed(2)}</td><td class="n">${s.N.toLocaleString()}</td><td class="n">${s.E}</td><td class="n">${pct(rr.parts[i]/rr.rr)}</td><td>${esc(s.hz)}${S.register.filter(r=>r.route===S.trip.route&&r.seg===i).map(r=>`<br><span class="chip a">★ ${esc(r.txt)}</span>`).join('')}</td></tr>`).join('')}
+  </tbody></table></div></div>
+  <div class="grid g21" style="margin-top:14px"><div class="card"><h3 style="color:var(--kj)">Journey key criteria <span class="r">critical must all be met</span></h3>${critList('J')}</div>
+   <div class="card"><h3>Key J result</h3>${keyCard('J',e)}${eqKey('J')}<a class="btn pri" href="#driver">Next: driver key →</a></div></div>`;
+};
+/* ----- Driver ----- */
+VIEWS.driver=()=>{
+  const d=S.driver,e=keyEval('D');
+  return `<span class="tag">Key D · Pillar: driver management</span><h2>Check the driver</h2>
+  <p class="lede">The driver key is verified from evidence, not declarations. Sleepiness is self-rated on the Karolinska Sleepiness Scale (1 = extremely alert, 9 = very sleepy, fighting sleep). The briefing is confirmed with a three-question check.</p>
+  <div class="grid g2">
+   <div class="card"><h3>Licence, rest and fitness for duty</h3><div class="form">
+    <div class="field"><label for="lic">Driving licence valid until</label><input id="lic" type="date" value="${d.licExp}" data-chg="drv" data-k="licExp"></div>
+    <div class="field"><label for="dg">Dangerous goods training valid until</label><input id="dg" type="date" value="${d.dgExp}" data-chg="drv" data-k="dgExp"></div>
+    <div class="field"><label for="rest">Off-duty rest before this shift (h)</label><input id="rest" type="number" step="0.5" min="0" max="48" value="${d.rest}" data-chg="drv" data-k="rest"><span class="hint">Company minimum: ${S.minRest} h (set in Calibration)</span></div>
+    <div class="field"><label for="sleep">Sleep in last 24 h (h)</label><input id="sleep" type="number" step="0.5" min="0" max="14" value="${d.sleep}" data-chg="drv" data-k="sleep"></div>
+    <div class="field"><label for="kss">Sleepiness (KSS 1–9): <b>${d.kss}</b></label><input id="kss" class="range" type="range" min="1" max="9" value="${d.kss}" data-chg="drv" data-k="kss"></div>
+    <div class="field"><label for="alc">Alcohol and drug check</label><select id="alc" data-chg="drv" data-k="alcohol">${['negative','positive','not done'].map(o=>`<option ${d.alcohol===o?'selected':''}>${o}</option>`).join('')}</select></div>
+   </div><div class="banner info small" style="margin-top:10px">Rule used for criterion d4: met if KSS ≤ 5 and sleep ≥ 7 h; partly met if KSS ≤ 7 and sleep ≥ 5 h; otherwise not met. Operators can replace this rule with their fatigue risk management policy.</div></div>
+   <div class="card"><h3>Briefing check <span class="r">criterion d5 · ${d.quiz.filter((v,i)=>v===QUIZ[i].a).length}/3 correct</span></h3>
+    ${QUIZ.map((q,i)=>`<div style="margin-bottom:10px"><div class="t" style="font-weight:600">${i+1}. ${esc(q.q)}</div><div class="row" style="margin-top:4px">${q.o.map((o,j)=>`<button class="btn small" data-act="quiz" data-q="${i}" data-o="${j}" style="${d.quiz[i]===j?(j===q.a?'background:var(--go-bg);border-color:var(--go)':'background:var(--hold-bg);border-color:var(--hold)'):''}">${esc(o)}</button>`).join('')}</div></div>`).join('')}
+    <div class="hint">Wrong answers are explained during the briefing; the check records understanding, it is not a test for discipline.</div></div>
+  </div>
+  <div class="grid g21" style="margin-top:14px"><div class="card"><h3 style="color:var(--kd)">Driver key criteria</h3>${critList('D')}</div>
+   <div class="card"><h3>Key D result</h3>${keyCard('D',e)}${eqKey('D')}<a class="btn pri" href="#vehicle">Next: vehicle key →</a></div></div>`;
+};
+/* ----- Vehicle ----- */
+VIEWS.vehicle=()=>{
+  const e=keyEval('V'),v=S.vehicle;
+  return `<span class="tag">Key V · Pillar: vehicle management</span><h2>Inspect the vehicle</h2>
+  <p class="lede">Mark each pre-trip item. A failed item in a critical group opens a defect automatically; the vehicle key stays closed until the defect is closed by the workshop.</p>
+  <div class="grid g21"><div class="card"><h3>Pre-trip inspection</h3>
+   ${INSPECT.map(g=>`<div style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><b>${g.g}</b><span class="chip ${inspGroupRatio(g.crit)===1?'g':'r'}">${pct(inspGroupRatio(g.crit))} pass · ${g.crit}</span></div>
+     ${g.items.map((it,i)=>{const k=g.crit+'-'+i,val=v.insp[k];return `<div class="citem s" style="margin-top:5px"><span>${esc(it)}</span><div class="seg">${[['pass','Pass','y'],['fail','Fail','n'],['na','N/A','p']].map(o=>`<button data-act="insp" data-k="${k}" data-v="${o[0]}" class="${val===o[0]?'on '+o[2]:''}">${o[1]}</button>`).join('')}</div></div>`;}).join('')}</div>`).join('')}
+  </div>
+  <div class="grid" style="align-content:start">
+   <div class="card"><h3>Key V result</h3>${keyCard('V',e)}${eqKey('V')}</div>
+   <div class="card"><h3>Defect log <span class="r">${v.defects.filter(d=>d.open).length} open</span></h3>
+    ${v.defects.length?v.defects.map(d=>`<div class="citem ${d.sev==='critical'?'c':'s'}" style="margin-bottom:5px"><div><div class="t">${esc(d.txt)}</div><div class="e">${d.grp} · ${d.sev} · ${esc(d.t)}${d.open?'':' · closed '+esc(d.closed||'')}</div></div>${d.open?`<button class="btn small" data-act="closeDef" data-id="${d.id}">Close (workshop)</button>`:'<span class="chip g">closed</span>'}</div>`).join(''):'<p class="muted">No defects.</p>'}
+    <form class="form" data-form="defect" style="margin-top:8px"><div class="field full"><label for="dtxt">New defect</label><input id="dtxt" placeholder="e.g. Nearside rear tyre cut"></div>
+     <div class="field"><label for="dgrp">Group</label><select id="dgrp">${INSPECT.map(g=>`<option value="${g.crit}">${g.g}</option>`).join('')}</select></div>
+     <div class="field"><label for="dsev">Severity</label><select id="dsev"><option>minor</option><option>critical</option></select></div>
+     <button class="btn full" type="submit">Add defect</button></form></div>
+   <div class="card"><h3>Maintenance <span class="r">criterion v7</span></h3><div class="form">
+     <div class="field"><label for="kms">km since last service</label><input id="kms" type="number" value="${v.kmSince}" data-chg="veh" data-k="kmSince"></div>
+     <div class="field"><label for="int">Service interval (km)</label><input id="int" type="number" value="${v.interval}" data-chg="veh" data-k="interval"></div></div></div>
+  </div></div>
+  <div class="card" style="margin-top:14px"><h3 style="color:var(--kv)">Vehicle key criteria</h3>${critList('V')}<div class="row" style="margin-top:10px"><a class="btn pri" href="#gate">Next: readiness gate →</a></div></div>`;
+};
+/* ----- Gate ----- */
+VIEWS.gate=()=>{
+  const G=gateEval(),g=S.gate,rel=g.released;
+  const isOps=S.role==='Dispatcher (Operations)',isQ=S.role==='QEHS manager';
+  const canRelease=!rel&&(G.dec==='GO'?(isOps||isQ):(G.dec==='CONDITIONAL'?(g.mitig.trim().length>=10&&g.sigOps&&g.sigQ&&(isOps||isQ)):false));
+  const weakItems=G.k[G.weakest].sup.filter(c=>auto(c)<1);
+  return `<span class="tag">Three-key readiness gate</span><h2>Release decision</h2>
+  <p class="lede">Release only if J ∧ D ∧ V. The Journey Readiness Index is the weakest key readiness, so a strong key cannot hide a weak one. Thresholds: GO ≥ ${S.theta.G.toFixed(2)}, CONDITIONAL ≥ ${S.theta.C.toFixed(2)}.</p>
+  <div class="row" style="margin-bottom:12px"><span class="small muted">Load a scenario:</span>${[['go','Ready to go'],['tired','Tired driver'],['brake','Brake defect'],['partly','Partly ready']].map(s=>`<button class="btn small" data-act="scenario" data-s="${s[0]}">${s[1]}</button>`).join('')}</div>
+  <div class="keys">${['J','D','V'].map(K=>keyCard(K,G.k[K])).join('')}</div>
+  <div class="grid g21" style="margin-top:14px">
+   <div class="card"><h3>Calculation <span class="r">Eqs 1–5</span></h3>
+    <div class="eq">R = J · D · V = ${G.k.J.status} · ${G.k.D.status} · ${G.k.V.status} = <strong>${G.R}</strong><b>Eq. 3</b></div>
+    <div class="eq">JRI = R · min(S<sub>J</sub>, S<sub>D</sub>, S<sub>V</sub>) = ${G.R} · min(${fx(G.k.J.S)}, ${fx(G.k.D.S)}, ${fx(G.k.V.S)}) = <strong>${fx(G.JRI)}</strong><b>Eq. 4</b></div>
+    <div class="eq">Decision: ${G.R===0?'R = 0 → HOLD':(G.JRI>=S.theta.G?`JRI ≥ ${S.theta.G.toFixed(2)} → GO`:(G.JRI>=S.theta.C?`${S.theta.C.toFixed(2)} ≤ JRI < ${S.theta.G.toFixed(2)} → CONDITIONAL GO`:`JRI < ${S.theta.C.toFixed(2)} → HOLD`))}<b>Eq. 5</b></div>
+    <div class="banner info small">Comparison: the arithmetic mean of the three keys is <b>${fx(G.mean)}</b>, which would give <b>${decLbl(decide(G.mean,G.R))}</b> under an averaging score. The gate uses the weakest key: <b>${KEYS[G.weakest].name}</b>.</div>
+    ${weakItems.length&&G.R?`<div class="small"><b>To raise ${KEYS[G.weakest].name} readiness:</b><ul style="margin:4px 0 0 18px;padding:0">${weakItems.map(c=>`<li>${esc(c.txt)} (w=${W(c)}, now ${auto(c)})</li>`).join('')}</ul></div>`:''}
+   </div>
+   <div class="card"><div class="decision ${decCls(G.dec)}"><div class="small" style="font-weight:700;letter-spacing:1px">DECISION</div><div class="d">${decLbl(G.dec)}</div><div>JRI ${fx(G.JRI)}</div></div>
+    ${G.dec==='CONDITIONAL'&&!rel?`<div class="field" style="margin-top:12px"><label for="mit">Mitigation for unmet criteria (required)</label><textarea id="mit" data-chg="mitig" placeholder="e.g. Extra 2 h rest before departure; relief driver from Ipoh">${esc(g.mitig)}</textarea></div>
+      <div class="row" style="margin-top:8px"><button class="btn" data-act="sign" data-who="ops" ${isOps&&!g.sigOps?'':'disabled'}>Sign · Operations</button><button class="btn" data-act="sign" data-who="q" ${isQ&&!g.sigQ?'':'disabled'}>Sign · QEHS</button></div>
+      <div class="small muted">Signatures: Operations ${g.sigOps?'✔ '+esc(g.sigOps):'—'} · QEHS ${g.sigQ?'✔ '+esc(g.sigQ):'—'}. Switch role at the top to sign as each person.</div>`:''}
+    <div class="row" style="margin-top:12px"><button class="btn ${G.dec==='GO'?'go':'amb'}" data-act="release" ${canRelease?'':'disabled'}>${rel?'Released':'Release trip'}</button>
+     ${G.dec==='HOLD'&&!rel&&G.R>0?`<button class="btn red" data-act="override" ${isQ?'':'disabled'} title="QEHS manager only; not available when a critical criterion has failed">Override HOLD (logged)</button>`:''}
+     ${rel?'<button class="btn" data-act="unrelease">Cancel release</button>':''}</div>
+    <div class="hint" style="margin-top:6px">${rel?'Trip released. Go to Live trip.':(G.dec==='HOLD'?'Release is blocked. Fix the failed items; a hold caused by a failed critical criterion cannot be overridden; other holds can be overridden only by the QEHS manager with a written reason, and each override counts in the override ratio.':'Release requires the Operations or QEHS role.')}</div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Gate log</h3><div class="log">${S.audit.filter(a=>/gate|release|override|sign|HOLD|GO|scenario/i.test(a.msg)).slice(0,20).map(a=>`<div><span class="muted">${esc(a.t)} · ${esc(a.who)}</span> — ${esc(a.msg)}</div>`).join('')||'<div class="muted">No gate events yet.</div>'}</div></div>`;
+};
+/* ----- Live ----- */
+let timer=null;
+VIEWS.live=()=>{
+  const G=gateEval(),L=S.live,segs=ROUTES[S.trip.route].segs,tot=segs.reduce((a,s)=>a+s.km,0);
+  let acc=0,si=0;for(let i=0;i<segs.length;i++){if(L.km<=acc+segs[i].km){si=i;break;}acc+=segs[i].km;si=i;}
+  const act=Object.values(L.active);
+  if(!S.gate.released)return `<span class="tag">Live re-gating</span><h2>Live trip</h2><div class="banner hold">The trip has not been released. Complete the <a href="#gate">readiness gate</a> first.</div>${mapSVG({truck:0})}`;
+  return `<span class="tag">Live re-gating · Eq. 6</span><h2>On the road</h2>
+  <p class="lede">K(t) = K(t₀) · Π(1 − T<sub>K,k</sub>(t)). Any active trigger re-opens its key until the required action is recorded. The driver may stop the journey at any time when facing imminent danger.</p>
+  ${act.length?`<div class="banner hold"><div><b>${act.length} key${act.length>1?'s':''} re-opened.</b> ${act.map(a=>esc(a.n)).join('; ')}. Record the action below to close the trigger.</div></div>`:'<div class="banner go">All keys closed. Trip within plan.</div>'}
+  <div class="grid g12"><div class="card">${mapSVG({truck:L.km})}</div>
+   <div class="grid" style="align-content:start">
+    <div class="card"><h3>Trip progress <span class="r">${fx(L.km,0)} / ${tot} km</span></h3><div class="bar"><i style="width:${100*L.km/tot}%"></i></div>
+     <div class="small" style="margin-top:6px">Segment ${si+1}: ${segs[si].a} → ${segs[si].b} · ${esc(segs[si].hz)}</div>
+     <div class="row" style="margin-top:10px"><button class="btn pri" data-act="play">${L.running?'Pause':'Start / resume'}</button><button class="btn" data-act="step">+25 km</button><button class="btn" data-act="arrive">Arrive</button></div></div>
+    <div class="keys">${['J','D','V'].map(K=>`<div class="key ${G.live[K]?'ok':'bad'}"><div class="kn" style="color:${KEYS[K].color}">${K}(t)</div><div class="ks">${G.live[K]}</div></div>`).join('')}</div>
+    <div class="card"><h3>Simulate a trigger</h3><div class="row">${TRIGGERS.map(t=>`<button class="btn small" data-act="trigger" data-t="${t.id}" ${L.active[t.id]?'disabled':''}>${t.k} · ${esc(t.n)}</button>`).join('')}</div></div>
+    ${act.map(a=>{const T=TRIGGERS.find(x=>x.id===a.id);return `<div class="card" style="border-color:var(--hold)"><h3 style="color:var(--hold)">${esc(T.n)} <span class="r">${esc(a.t)} · km ${fx(a.km,0)}</span></h3><div class="row"><select id="act_${T.id}" aria-label="Required action">${T.acts.map(x=>`<option>${esc(x)}</option>`).join('')}</select><button class="btn go" data-act="clearTrig" data-t="${T.id}">Record action and close</button></div></div>`;}).join('')}
+    <div class="card"><h3>Trip events</h3><div class="log">${L.events.map(e=>`<div><span class="muted">${esc(e.t)} · km ${fx(e.km,0)}</span> — ${esc(e.msg)}</div>`).join('')||'<div class="muted">No events yet.</div>'}</div></div>
+   </div></div>`;
+};
+/* ----- Emergency ----- */
+VIEWS.emergency=()=>{
+  const segs=ROUTES[S.trip.route].segs;let acc=0,si=0;for(let i=0;i<segs.length;i++){if(S.live.km<=acc+segs[i].km){si=i;break;}acc+=segs[i].km;si=i;}
+  const s=segs[si],t=S.trip,rad=parseFloat(S.sos.radius)||0;
+  const msg=`EMERGENCY · ${t.id} · ${t.un} ${t.sub}, class ${t.cls}, ${t.qty}. Location: km ${Math.round(S.live.km)} of route, segment ${s.a}–${s.b}. Driver ${t.driver}, vehicle ${t.vehicle}. Time ${nowStr()}.`;
+  return `<span class="tag">Emergency response</span><h2>Emergency</h2>
+  <p class="lede">One press raises the alarm, logs the event, and prepares the emergency message with the load and location. Follow the emergency card and your company procedure; this screen does not replace them.</p>
+  <div class="grid g2"><div class="grid" style="align-content:start">
+   <button class="sos" data-act="sos">${S.sos.active?'SOS ACTIVE':'SOS'}</button>
+   ${S.sos.active?`<div class="banner hold"><div><b>Alarm raised ${esc(S.sos.t||'')}.</b> All keys are held. Call now: <b>999</b> (Malaysia Emergency Response Services) · <b>994</b> (Fire and Rescue) · <b>112</b> from mobile phones. Then call the company emergency contact.</div></div>
+     <div class="card"><h3>Emergency message</h3><p class="mono small">${esc(msg)}</p><div class="row"><button class="btn pri" data-act="copyMsg">Copy message</button><button class="btn" data-act="sosOff">Stand down</button></div></div>`:''}
+   <div class="card"><h3>First actions for the driver</h3><ol style="margin:0 0 0 18px;padding:0;line-height:1.8">
+    <li>Stop safely, engine off, hazard lights on, no smoking or flames.</li><li>Keep yourself and others <b>upwind and uphill</b>; do not touch or walk through spilled material.</li><li>Raise the alarm and give the UN number, quantity and location.</li><li>Use the emergency card on board and wear the PPE for the load.</li><li>Stop leaks only if trained and safe; keep the spill out of drains and rivers.</li><li>Keep people away; never let bystanders collect spilled product.</li></ol></div></div>
+   <div class="grid" style="align-content:start">
+    <div class="card"><h3>Load and location</h3><table><tbody>
+     <tr><th>UN number</th><td><span class="un">${esc(t.un)}</span></td></tr><tr><th>Substance</th><td>${esc(t.sub)}</td></tr><tr><th>Class / packing group</th><td>${esc(t.cls)} / ${esc(t.pg)}</td></tr><tr><th>Quantity</th><td>${esc(t.qty)}</td></tr>
+     <tr><th>Position</th><td>km ${fx(S.live.km,0)} · segment ${si+1}: ${s.a} → ${s.b}</td></tr><tr><th>Nearby receptors</th><td>${esc(s.hz)} · environmental score E = ${s.E}/5 · ~${s.N.toLocaleString()} people exposed (illustrative)</td></tr></tbody></table></div>
+    <div class="card"><h3>Isolation zone</h3><div class="field"><label for="rad">Initial isolation distance (m), from the ERG or the emergency card for this UN number</label><input id="rad" type="number" min="0" step="50" value="${esc(S.sos.radius)}" data-chg="radius" placeholder="enter from ERG / ERICard"></div>
+     <div class="hint">TRIAD Guard does not supply isolation distances; enter the value from the official guide so the zone is drawn on the map.</div>${mapSVG({truck:S.live.km,radius:rad})}</div>
+   </div></div>`;
+};
+/* ----- Debrief ----- */
+VIEWS.debrief=()=>{
+  const segs=ROUTES[S.trip.route].segs;
+  return `<span class="tag">Learning loop · debrief and improve</span><h2>Debrief and learn</h2>
+  <p class="lede">Hold the debrief within 24 hours of arrival. Reports are used for learning and coaching, not for discipline (just culture). Each lesson can update the journey risk register or a criterion weight, which closes the loop for the next trip.</p>
+  <div class="grid g2"><div class="card"><h3>Trip debrief <span class="r">${esc(S.trip.id)}</span></h3><form class="form" data-form="debrief">
+    <div class="field full"><label for="nm">Near misses (one per line)</label><textarea id="nm" placeholder="e.g. Car cut in sharply at Rawang toll; hard braking"></textarea></div>
+    <div class="field"><label for="dseg">Where (segment)</label><select id="dseg">${segs.map((s,i)=>`<option value="${i}">${i+1}. ${s.a} → ${s.b}</option>`).join('')}</select></div>
+    <div class="field"><label for="press">Shipper or schedule pressure?</label><select id="press"><option value="0">No</option><option value="1">Yes</option></select></div>
+    <div class="field full"><label for="well">What went well</label><input id="well" placeholder="e.g. Rest stop at Tapah worked; briefing was clear"></div>
+    <div class="field full"><label for="lesson">Lesson for the next trip</label><input id="lesson" placeholder="e.g. Add advisory 60 km/h on downgrade before Ipoh"></div>
+    <div class="field"><label for="apply">Apply lesson to</label><select id="apply"><option value="reg">Journey risk register (segment)</option><option value="w">Raise weight of a criterion to 3</option><option value="act">Improvement action only</option></select></div>
+    <div class="field"><label for="crit">Criterion (if raising weight)</label><select id="crit">${['J','D','V'].flatMap(K=>CRITERIA[K].filter(c=>c.t==='s').map(c=>`<option value="${c.id}">${c.id} · ${esc(c.txt.slice(0,40))}</option>`)).join('')}</select></div>
+    <div class="field full"><label class="row small"><input type="checkbox" id="tele" checked> Telematics and inspection records reviewed with the driver (objective review)</label></div>
+    <button class="btn pri full" type="submit">Save debrief</button></form></div>
+   <div class="grid" style="align-content:start">
+    <div class="card"><h3>Improvement actions <span class="r">${S.actions.filter(a=>!a.open).length}/${S.actions.length} closed</span></h3>
+     ${S.actions.map(a=>`<div class="citem ${a.open?'c':'s'}" style="margin-bottom:5px"><div><div class="t">${esc(a.txt)}</div><div class="e">${esc(a.owner)} · due ${esc(a.due)} · ${esc(a.src)}</div></div>${a.open?`<button class="btn small" data-act="closeAct" data-id="${a.id}">Mark closed</button>`:'<span class="chip g">closed</span>'}</div>`).join('')}</div>
+    <div class="card"><h3>Journey risk register <span class="r">lessons applied</span></h3>${S.register.length?`<table><thead><tr><th>Route</th><th>Segment</th><th>Entry</th><th>Date</th></tr></thead><tbody>${S.register.map(r=>`<tr><td>${r.route}</td><td>${r.seg+1}</td><td>${esc(r.txt)}</td><td>${esc(r.t)}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">No lessons applied yet. Save a debrief with "Journey risk register" to add one; it appears on the Journey map with ★.</p>'}</div>
+    <div class="card"><h3>Debriefs saved</h3>${S.debriefs.length?S.debriefs.map(d=>`<div class="citem s" style="margin-bottom:5px"><div><div class="t">${esc(d.trip)} · ${esc(d.t)}</div><div class="e">${d.nm.length} near miss(es) · pressure: ${d.press?'yes':'no'} · ${esc(d.lesson||'')}</div></div></div>`).join(''):'<p class="muted">None yet.</p>'}</div>
+   </div></div>`;
+};
+/* ----- Dashboard ----- */
+function sparkBars(vals,labels,max,color,dec){const w=300,h=110,bw=w/vals.length;max=max||Math.max(...vals,1);
+  return `<svg viewBox="0 0 ${w} ${h+22}" style="width:100%"><line x1="0" y1="${h}" x2="${w}" y2="${h}" stroke="var(--line)"/>${vals.map((v,i)=>`<rect x="${i*bw+6}" y="${h-h*v/max}" width="${bw-12}" height="${h*v/max}" rx="3" fill="${color||'var(--navy)'}" opacity="${i===vals.length-1?1:.65}"/><text x="${i*bw+bw/2}" y="${h-h*v/max-4}" font-size="10" text-anchor="middle">${dec!=null?fx(v,dec):fx(v,1)}</text><text x="${i*bw+bw/2}" y="${h+15}" font-size="10" text-anchor="middle" fill="var(--muted)">${labels[i]}</text>`).join('')}</svg>`;}
+function ring(v,lbl){const r=34,c=2*Math.PI*r,col=v<0.5?'var(--hold)':(v<0.8?'var(--cond)':'var(--go)');
+  return `<div style="text-align:center"><svg viewBox="0 0 90 90" style="width:92px"><circle cx="45" cy="45" r="${r}" stroke="var(--line)" stroke-width="9" fill="none"/><circle cx="45" cy="45" r="${r}" stroke="${col}" stroke-width="9" fill="none" stroke-dasharray="${c*v} ${c}" transform="rotate(-90 45 45)" stroke-linecap="round"/><text x="45" y="50" text-anchor="middle" font-family="IBM Plex Mono" font-size="16" font-weight="600">${fx(v)}</text></svg><div style="font-weight:700">${lbl}</div>${v<0.5?'<span class="chip r">floor rule: red</span>':''}</div>`;}
+VIEWS.dashboard=()=>{
+  const I=indicators(),months=['May','Jun','Jul','Aug','Sep','Oct'];
+  const byM=months.map(m=>{const ids=S.fleet.map((j,i)=>j.month===m?i:-1).filter(i=>i>=0);const d=ids.map(i=>I.dec[i]);return {hold:d.filter(x=>x.dec==='HOLD').length/d.length,jri:d.reduce((a,x)=>a+x.JRI,0)/d.length,nm:ids.reduce((a,i)=>a+S.fleet[i].nm,0)/ids.length*100};});
+  const go=I.dec.filter(d=>d.dec==='GO').length;
+  return `<span class="tag">QEHS performance · Eq. 8</span><h2>QEHS dashboard</h2>
+  <div class="banner info small"><div><b>Synthetic demo fleet:</b> ${I.n} journeys (${I.km.toLocaleString()} km, May–Oct 2026) generated to demonstrate the indicators. They are not observations. Session activity (debriefs, actions, overrides) is added live.</div></div>
+  <div class="grid g12"><div class="card" style="text-align:center"><h3>QEHS Performance Index</h3><div class="num" style="font-size:48px">${fx(I.QPI)}</div><div class="small muted">QPI = Σ ω<sub>d</sub> I<sub>d</sub> with ω = ${['Q','E','H','S'].map(d=>S.omega[d].toFixed(2)).join(' / ')}</div>
+     <div class="grid g4" style="margin-top:12px">${['Q','E','H','S'].map(d=>ring(I.dims[d],{Q:'Quality',E:'Environment',H:'Health',S:'Safety'}[d])).join('')}</div></div>
+   <div class="grid g3"><div class="card"><h3>Gate decisions</h3><div class="row"><span class="pill go">GO ${go}</span><span class="pill cond">COND ${I.cond}</span><span class="pill hold">HOLD ${I.holds}</span></div><div class="small muted" style="margin-top:6px">Holds are expected in a working gate.</div></div>
+    <div class="card"><h3>Mean JRI by month</h3>${sparkBars(byM.map(x=>+x.jri.toFixed(2)),months,1,null,2)}</div>
+    <div class="card"><h3>Near misses / 100 journeys</h3>${sparkBars(byM.map(x=>+x.nm.toFixed(1)),months,null,'var(--accent)')}</div></div></div>
+  <div class="card" style="margin-top:14px"><h3>Indicator set <span class="r">attainment a = min(1, observed/target) or min(1, target/observed)</span></h3><div class="tw"><table><thead><tr><th>Indicator</th><th>Definition</th><th>Type</th><th>Dim.</th><th class="n">Observed</th><th class="n">Target</th><th class="n">Attainment</th></tr></thead><tbody>
+   ${I.rows.map(r=>{const f=v=>r.fmt==='pct'?pct(v):(r.fmt==='h'?fx(v,0)+' h':fx(v,2));return `<tr><td><b>${r.n}</b></td><td class="small">${r.def}</td><td class="small">${r.type}</td><td>${r.dims.join(', ')}</td><td class="n">${f(r.obs)}</td><td class="n">${r.dir==='mon'?'monitor':(r.dir==='up'?'≥ ':'≤ ')+(r.dir==='mon'?'':f(r.target))}</td><td class="n">${r.a==null?'–':`<span class="chip ${r.a>=0.8?'g':(r.a>=0.5?'a':'r')}">${fx(r.a)}</span>`}</td></tr>`;}).join('')}
+  </tbody></table></div><p class="hint">Targets are illustrative defaults to be set by each operator. The hold rate is monitored without a target and is excluded from the QPI.</p></div>`;
+};
+/* ----- Maturity ----- */
+function radar(m){const cx=150,cy=140,R=105,n=m.length;const pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/n;return [cx+R*v/5*Math.cos(a),cy+R*v/5*Math.sin(a)];};
+  let s=`<svg viewBox="0 0 300 290" style="width:100%;max-width:340px">`;for(let l=1;l<=5;l++)s+=`<polygon points="${MAT_DIMS.map((_,i)=>pt(i,l).join(',')).join(' ')}" fill="none" stroke="var(--line)"/>`;
+  MAT_DIMS.forEach((d,i)=>{const p=pt(i,5.9);s+=`<line x1="${cx}" y1="${cy}" x2="${pt(i,5)[0]}" y2="${pt(i,5)[1]}" stroke="var(--line)"/><text x="${p[0]}" y="${p[1]}" font-size="10.5" text-anchor="middle">${d.n}</text>`;});
+  s+=`<polygon points="${m.map((v,i)=>pt(i,v).join(',')).join(' ')}" fill="var(--accent)" opacity=".3" stroke="var(--accent)" stroke-width="2"/>`;m.forEach((v,i)=>{const p=pt(i,v);s+=`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)"/>`;});return s+'</svg>';}
+VIEWS.maturity=()=>{
+  const M=maturity(),low=MAT_DIMS.reduce((a,d)=>S.maturity[d.id]<S.maturity[a.id]?d:a,MAT_DIMS[0]);
+  return `<span class="tag">Maturity pathway · Eq. 9</span><h2>Where is the company on the ladder?</h2>
+  <p class="lede">Score each dimension from audit records (1 = reactive, 5 = generative). The level cannot exceed the weakest dimension by more than one step: L = min(⌊mean⌋, min m<sub>k</sub> + 1).</p>
+  <div class="grid g12"><div class="card" style="text-align:center"><h3>Overall level</h3><div class="num" style="font-size:56px">${M.L}</div><div style="font:700 24px var(--display)">${MAT_LEVELS[M.L-1]}</div><div class="small muted">mean ${fx(M.mean,1)} · weakest: ${low.n} (${S.maturity[low.id]})</div>${radar(M.m)}
+     <div class="banner info small" style="text-align:left"><div><b>To move up:</b> raise <b>${low.n}</b> to level ${Math.min(5,S.maturity[low.id]+1)}: ${esc(low.a[Math.min(4,S.maturity[low.id])])}.</div></div></div>
+   <div class="card">${MAT_DIMS.map(d=>`<div style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><b>${d.n}</b><span class="chip">${S.maturity[d.id]} · ${MAT_LEVELS[S.maturity[d.id]-1]}</span></div>
+     <input class="range" type="range" min="1" max="5" value="${S.maturity[d.id]}" data-chg="mat" data-k="${d.id}" aria-label="${d.n}">
+     <div class="small">${esc(d.a[S.maturity[d.id]-1])}</div></div>`).join('')}</div></div>`;
+};
+/* ----- Calibration ----- */
+let sensCache=null;
+function sensitivity(){
+  const base=fleetDecisions(S.fleet).map(d=>d.dec),n=base.length,res=[];
+  const sup=['J','D','V'].flatMap(K=>CRITERIA[K].filter(c=>c.t==='s'));
+  sup.forEach(c=>{[0.8,1.2].forEach(f=>{const dec=fleetDecisions(S.fleet,{w:x=>x.id===c.id?W(x)*f:W(x)}).map(d=>d.dec);res.push({p:`w(${c.id}) × ${f}`,ch:dec.filter((d,i)=>d!==base[i]).length/n});});});
+  [[-0.05,0],[0.05,0],[0,-0.05],[0,0.05]].forEach(([g,c])=>{const th={G:S.theta.G+g,C:S.theta.C+c};const dec=fleetDecisions(S.fleet,{theta:th}).map(d=>d.dec);res.push({p:`θG ${S.theta.G.toFixed(2)}→${th.G.toFixed(2)}, θC ${S.theta.C.toFixed(2)}→${th.C.toFixed(2)}`,ch:dec.filter((d,i)=>d!==base[i]).length/n});});
+  const mean=fleetDecisions(S.fleet).map(d=>decide(d.mean,d.R));const vsMean=mean.filter((d,i)=>d!==base[i]).length/n;
+  return {res,n,vsMean,maxW:Math.max(...res.slice(0,-4).map(r=>r.ch)),maxT:Math.max(...res.slice(-4).map(r=>r.ch))};
+}
+const T16=[['A',1,1,1,0.92,0.88,0.95,0.88,'GO'],['B',1,1,1,0.95,0.50,0.97,0.50,'HOLD'],['C',1,1,0,0.90,0.90,0.95,0,'HOLD'],['D',1,1,1,0.85,0.70,0.90,0.70,'CONDITIONAL']];
+VIEWS.calibration=()=>{
+  const sup=['J','D','V'].flatMap(K=>CRITERIA[K].filter(c=>c.t==='s').map(c=>Object.assign({K},c)));
+  const sens=sensCache;
+  return `<span class="tag">Calibration and verification</span><h2>Weights, thresholds and sensitivity</h2>
+  <p class="lede">All values are initial defaults from the paper (Section 6.3 and Table 4), to be confirmed by Delphi consensus and calibrated against outcomes. Changes here apply to every page at once.</p>
+  <div class="grid g2"><div class="card"><h3>Thresholds and weights</h3>
+    <div class="field"><label for="thG">Release threshold θ<sub>G</sub>: <b>${S.theta.G.toFixed(2)}</b></label><input id="thG" class="range" type="range" min="0.5" max="0.95" step="0.01" value="${S.theta.G}" data-chg="theta" data-k="G"></div>
+    <div class="field"><label for="thC">Conditional threshold θ<sub>C</sub>: <b>${S.theta.C.toFixed(2)}</b></label><input id="thC" class="range" type="range" min="0.3" max="0.9" step="0.01" value="${S.theta.C}" data-chg="theta" data-k="C"></div>
+    <div class="form" style="margin-top:6px">${['Q','E','H','S'].map(d=>`<div class="field"><label for="om${d}">ω<sub>${d}</sub></label><input id="om${d}" type="number" min="0" max="1" step="0.05" value="${S.omega[d]}" data-chg="omega" data-k="${d}"></div>`).join('')}</div>
+    <div class="hint">ω values are normalised to sum to 1 (Eq. 8).</div>
+    <div class="field" style="margin-top:8px"><label for="minr">Company minimum rest before duty (h)</label><input id="minr" type="number" min="0" max="24" step="0.5" value="${S.minRest}" data-chg="minrest"></div>
+    <div class="tw" style="margin-top:10px"><table><thead><tr><th>Key</th><th>Supporting criterion</th><th>Weight</th></tr></thead><tbody>${sup.map(c=>`<tr><td>${c.K}</td><td class="small">${esc(c.txt)}</td><td><select data-chg="weight" data-id="${c.id}" aria-label="weight ${c.id}">${[1,2,3].map(w=>`<option ${W(c)===w?'selected':''}>${w}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
+    <div class="row" style="margin-top:8px"><button class="btn" data-act="restoreDefaults">Restore default weights and thresholds</button></div></div>
+   <div class="grid" style="align-content:start">
+    <div class="card"><h3>Self-test: worked example (Table 5)</h3><table><thead><tr><th>Case</th><th class="n">S<sub>J</sub></th><th class="n">S<sub>D</sub></th><th class="n">S<sub>V</sub></th><th class="n">JRI</th><th>Decision</th><th>Paper</th></tr></thead><tbody>
+     ${T16.map(r=>{const R=r[1]*r[2]*r[3],J=R*Math.min(r[4],r[5],r[6]),d=decide(J,R);const ok=Math.abs(J-r[7])<1e-9&&d===r[8];return `<tr><td>${r[0]}</td><td class="n">${fx(r[4])}</td><td class="n">${fx(r[5])}</td><td class="n">${fx(r[6])}</td><td class="n">${fx(J)}</td><td><span class="chip ${decCls(d)==='go'?'g':(decCls(d)==='cond'?'a':'r')}">${decLbl(d)}</span></td><td>${ok?'<span class="chip g">✔ matches</span>':'<span class="chip r">differs (thresholds changed)</span>'}</td></tr>`;}).join('')}</tbody></table></div>
+    <div class="card"><h3>Sensitivity analysis <span class="r">±20% weights, ±0.05 thresholds</span></h3>
+     <p class="small muted">Re-scores the ${S.fleet.length} demo journeys and reports the share of release decisions that change (Section 7 of the paper).</p>
+     <button class="btn pri" data-act="sens">Run sensitivity analysis</button>
+     ${sens?`<div class="grid g3" style="margin-top:10px"><div class="kpi"><b>Max change, one weight</b><span class="num" style="font-size:26px">${pct(sens.maxW)}</span></div><div class="kpi"><b>Max change, thresholds</b><span class="num" style="font-size:26px">${pct(sens.maxT)}</span></div><div class="kpi"><b>JRI vs mean rule</b><span class="num" style="font-size:26px">${pct(sens.vsMean)}</span></div></div>
+      <div class="tw" style="max-height:260px;overflow:auto;margin-top:8px"><table><thead><tr><th>Perturbation</th><th class="n">Decisions changed</th></tr></thead><tbody>${sens.res.sort((a,b)=>b.ch-a.ch).map(r=>`<tr><td class="mono small">${esc(r.p)}</td><td class="n">${pct(r.ch)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hint">"JRI vs mean rule" is the share of journeys whose decision would differ if the gate averaged the keys instead of taking the weakest key; both rules hold journeys with a failed critical criterion.</p>`:''}
+    </div></div></div>`;
+};
+/* ----- Method ----- */
+VIEWS.method=()=>`<span class="tag">How TRIAD Guard calculates</span><h2>Method and equations</h2>
+  <p class="lede">TRIAD Guard implements the measurement model of the TRIAD-QEHS framework (Section 6 of the paper). The tool advises; qualified people decide. Every override is logged with its reason.</p>
+  <div class="grid g2"><div class="card"><h3>Release decision</h3>
+   <div class="eq">K = ∏<sub>i∈C<sub>K</sub></sub> x<sub>i</sub>, x<sub>i</sub> ∈ {0,1}, K ∈ {J, D, V}<b>Eq. 1</b></div>
+   <div class="eq">S<sub>K</sub> = Σ w<sub>j</sub> y<sub>j</sub> / Σ w<sub>j</sub>, y<sub>j</sub> ∈ {0, 0.5, 1}, w ∈ {3, 2, 1}<b>Eq. 2</b></div>
+   <div class="eq">R = J · D · V<b>Eq. 3</b></div>
+   <div class="eq">JRI = R · min(S<sub>J</sub>, S<sub>D</sub>, S<sub>V</sub>)<b>Eq. 4</b></div>
+   <div class="eq">GO if JRI ≥ θ<sub>G</sub>; CONDITIONAL GO if θ<sub>C</sub> ≤ JRI &lt; θ<sub>G</sub>; HOLD otherwise (θ<sub>G</sub> = 0.80, θ<sub>C</sub> = 0.60)<b>Eq. 5</b></div></div>
+   <div class="card"><h3>Trip, route, fleet and maturity</h3>
+   <div class="eq">K(t) = K(t<sub>0</sub>) · ∏<sub>k</sub> (1 − T<sub>K,k</sub>(t))<b>Eq. 6</b></div>
+   <div class="eq">RR = Σ<sub>s</sub> p<sub>s</sub> ℓ<sub>s</sub> (N<sub>s</sub> + λE<sub>s</sub>)<b>Eq. 7</b></div>
+   <div class="eq">I<sub>d</sub> = (1/n<sub>d</sub>) Σ a<sub>d,m</sub>; QPI = Σ<sub>d∈{Q,E,H,S}</sub> ω<sub>d</sub> I<sub>d</sub><b>Eq. 8</b></div>
+   <div class="eq">L = min(⌊m̄⌋, min<sub>k</sub> m<sub>k</sub> + 1)<b>Eq. 9</b></div></div></div>
+  <div class="card" style="margin-top:14px"><h3>Modules and framework elements</h3><div class="tw"><table><thead><tr><th>Module</th><th>Framework element</th><th>Equations</th><th>Gap addressed (Section 5)</th></tr></thead><tbody>
+   ${[['Journey key','Journey pillar; route risk; delivery window; environmental screening','1, 2, 7','1, 4, 5'],['Driver key','Driver pillar; fitness for duty; briefing check','1, 2','2, 4'],['Vehicle key','Vehicle pillar; inspection; defect log','1, 2','2, 5'],['Readiness gate','Three-key non-compensatory gate; two-person rule; override log','3, 4, 5','2, 8'],['Live trip','Live re-gating with triggers and required actions','6','8'],['Emergency','SOS, emergency message, isolation zone','–','1, 5'],['Debrief & learning','Learning loop; journey risk register; actions','–','1, 6, 7'],['QEHS dashboard','18 indicators; QPI with floor rule','8','3, 5, 7'],['Maturity','Five-dimension maturity score','9','6'],['Calibration','Weights, thresholds, sensitivity, self-test','2, 4, 5','3, 8']].map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}
+  </tbody></table></div></div>
+  <div class="card" style="margin-top:14px"><h3>Limits of this prototype</h3><ul style="margin:0 0 0 18px;padding:0;line-height:1.7"><li>Route, fleet and segment values are illustrative or synthetic; replace them with operator data.</li><li>Weights, thresholds and targets are initial proposals to be validated (Delphi, sensitivity analysis, outcome calibration).</li><li>Isolation distances and legal limits must come from the ERG/ERICards and national law; the tool does not supply them.</li><li>Data stay in this browser only; a field version needs secure storage, access control and data-protection compliance.</li><li>Not field-tested; final decisions remain with qualified people.</li></ul></div>`;
+
+/* ================= interactions ================= */
+function applyScenario(s){
+  const set=(id,y)=>{S.crit[id].y=y;};const d=S.driver;
+  // reset to ready
+  ['j1','j2','j4','j5','j6','j8','d6','d7','d8','v8'].forEach(id=>set(id,1));S.trip.window=10;S.trip.envScreened=true;
+  Object.assign(d,{rest:11,sleep:7.5,kss:3,alcohol:'negative',quiz:[1,1,1]});
+  Object.keys(S.vehicle.insp).forEach(k=>S.vehicle.insp[k]='pass');S.vehicle.defects.forEach(x=>{if(x.open){x.open=false;x.closed=nowStr();}});S.vehicle.kmSince=14200;
+  if(s==='tired'){Object.assign(d,{sleep:4.5,kss:8,quiz:[1,0,null]});set('d8',0);set('d7',0);}
+  if(s==='brake'){S.vehicle.insp['v1-1']='fail';S.vehicle.defects.push({id:Date.now(),txt:'Brake stroke out of adjustment, axle 2',grp:'v1',sev:'critical',open:true,t:nowStr()});}
+  if(s==='partly'){Object.assign(d,{sleep:6,kss:6});set('d8',0.5);set('d7',0);set('j5',0.5);}
+  S.gate=Object.assign(S.gate,{mitig:'',sigOps:'',sigQ:''});
+  audit(`Scenario loaded: ${s}. Gate re-evaluated → ${decLbl(gateEval().dec)} (JRI ${fx(gateEval().JRI)}).`);
+}
+function modal(html){$('#modalbox').innerHTML=html;$('#modal').classList.add('on');}
+function closeModal(){$('#modal').classList.remove('on');}
+function copy(text){try{navigator.clipboard.writeText(text).then(()=>toast('Copied to clipboard'),()=>modal(`<h3>Copy this text</h3><textarea style="width:100%;height:240px">${esc(text)}</textarea><div class="row" style="margin-top:8px"><button class="btn" data-act="closeModal">Close</button></div>`));}catch(e){modal(`<h3>Copy this text</h3><textarea style="width:100%;height:240px">${esc(text)}</textarea><div class="row" style="margin-top:8px"><button class="btn" data-act="closeModal">Close</button></div>`);}}
+function tick(){const tot=ROUTES[S.trip.route].segs.reduce((a,s)=>a+s.km,0);
+  if(Object.keys(S.live.active).length){stop();toast('Trip paused: a key is re-opened');return;}
+  S.live.km=Math.min(tot,S.live.km+5);if(S.live.km>=tot){arrive();return;}
+  if(route()==='live')render();else{nav();strip();save();}}
+function stop(){S.live.running=false;clearInterval(timer);timer=null;}
+function arrive(){stop();const tot=ROUTES[S.trip.route].segs.reduce((a,s)=>a+s.km,0);S.live.km=tot;S.live.stage='debrief';S.live.events.unshift({t:nowStr(),km:tot,msg:'Arrived at destination. Debrief due within 24 h.'});audit('Trip arrived; debrief due.');toast('Arrived. Hold the debrief.');location.hash='debrief';render();}
+const ACT={
+ theme(){const r=document.documentElement;const cur=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');S.theme=cur==='dark'?'light':'dark';r.setAttribute('data-theme',S.theme);save();},
+ setY(el){S.crit[el.dataset.id].y=parseFloat(el.dataset.y);audit(`Criterion ${el.dataset.id} set to ${el.dataset.y}.`);},
+ route(el){S.trip.route=el.dataset.r;S.live.km=0;audit(`Route ${el.dataset.r} selected (RR ${fx(routeRisk(el.dataset.r).rr,3)}).`);},
+ quiz(el){S.driver.quiz[+el.dataset.q]=+el.dataset.o;if(S.live.stage==='plan')S.live.stage='brief';},
+ insp(el){const k=el.dataset.k,v=el.dataset.v,grp=k.split('-')[0];S.vehicle.insp[k]=v;
+   if(v==='fail'){const it=INSPECT.find(g=>g.crit===grp).items[+k.split('-')[1]];if(!S.vehicle.defects.some(d=>d.open&&d.txt===it)){S.vehicle.defects.push({id:Date.now(),txt:it,grp,sev:['v1','v2','v3'].includes(grp)?'critical':'minor',open:true,t:nowStr()});audit(`Inspection fail → defect opened: ${it}.`);}}},
+ closeDef(el){if(S.role!=='Workshop'&&S.role!=='QEHS manager'){toast('Switch role to Workshop to close defects');return;}const d=S.vehicle.defects.find(x=>x.id==el.dataset.id);d.open=false;d.closed=nowStr();
+   INSPECT.find(g=>g.crit===d.grp).items.forEach((it,i)=>{if(it===d.txt)S.vehicle.insp[d.grp+'-'+i]='pass';});audit(`Defect closed: ${d.txt}.`);},
+ scenario(el){applyScenario(el.dataset.s);toast('Scenario loaded');},
+ sign(el){const who=el.dataset.who;if(who==='ops')S.gate.sigOps=S.role+' · '+nowStr();else S.gate.sigQ=S.role+' · '+nowStr();audit(`Conditional release signed by ${S.role}.`);},
+ release(){const G=gateEval();S.gate.released=true;S.gate.decisionAtRelease=G.dec;S.live.stage='drive';S.live.km=0;S.live.active={};S.live.events=[{t:nowStr(),km:0,msg:`Released as ${decLbl(G.dec)} (JRI ${fx(G.JRI)}).${G.dec==='CONDITIONAL'?' Mitigation: '+S.gate.mitig:''}`}];
+   audit(`Trip released: ${decLbl(G.dec)}, JRI ${fx(G.JRI)}.`);toast('Trip released');location.hash='live';},
+ override(){modal(`<h3>Override HOLD</h3><p class="small">Overrides are recorded with the reason and counted in the override ratio on the dashboard. Use only when the hold rule is wrong for this specific case.</p><div class="field"><label for="ovr">Reason (required)</label><textarea id="ovr"></textarea></div><div class="row" style="margin-top:10px"><button class="btn red" data-act="doOverride">Confirm override</button><button class="btn" data-act="closeModal">Cancel</button></div>`);},
+ doOverride(){if(gateEval().R===0){closeModal();toast('A failed critical criterion cannot be overridden');return;}const r=($('#ovr')||{}).value||'';if(r.trim().length<10){toast('Give a reason of at least 10 characters');return;}closeModal();S.gate.override=true;S.gate.released=true;S.gate.decisionAtRelease='OVERRIDE';S.live.stage='drive';S.live.km=0;S.live.events=[{t:nowStr(),km:0,msg:'Released by OVERRIDE of HOLD. Reason: '+r}];audit('OVERRIDE of HOLD by QEHS manager. Reason: '+r);location.hash='live';},
+ unrelease(){stop();S.gate.released=false;S.gate.override=false;S.live.stage='plan';S.live.km=0;S.live.active={};audit('Release cancelled.');},
+ play(){if(S.live.running){stop();}else{if(Object.keys(S.live.active).length){toast('Close the open trigger first');return;}S.live.running=true;timer=setInterval(tick,350);}},
+ step(){const tot=ROUTES[S.trip.route].segs.reduce((a,s)=>a+s.km,0);S.live.km=Math.min(tot,S.live.km+25);if(S.live.km>=tot)arrive();},
+ arrive(){arrive();},
+ trigger(el){const T=TRIGGERS.find(t=>t.id===el.dataset.t);stop();S.live.active[T.id]={id:T.id,k:T.k,n:T.n,t:nowStr(),km:S.live.km};S.live.events.unshift({t:nowStr(),km:S.live.km,msg:`TRIGGER: ${T.n} → key ${T.k} re-opened.`});audit(`Live trigger: ${T.n}; key ${T.k}(t) = 0.`);
+   if(T.id==='fat'){const j=S.fleet[S.fleet.length-1];j.fat+=1;}},
+ clearTrig(el){const T=TRIGGERS.find(t=>t.id===el.dataset.t);const a=($('#act_'+T.id)||{}).value;delete S.live.active[T.id];S.live.events.unshift({t:nowStr(),km:S.live.km,msg:`Action recorded: ${a}. Key ${T.k} closed.`});audit(`Trigger closed with action: ${a}.`);},
+ sos(){S.sos.active=true;S.sos.t=nowStr();stop();S.live.events.unshift({t:nowStr(),km:S.live.km,msg:'SOS raised.'});audit('SOS raised at km '+Math.round(S.live.km)+'.');},
+ sosOff(){S.sos.active=false;audit('SOS stood down.');},
+ copyMsg(){const t=S.trip;copy(`EMERGENCY · ${t.id} · ${t.un} ${t.sub}, class ${t.cls}, ${t.qty}. Location km ${Math.round(S.live.km)}. Driver ${t.driver}, vehicle ${t.vehicle}. ${nowStr()}`);},
+ closeAct(el){const a=S.actions.find(x=>x.id==el.dataset.id);a.open=false;audit(`Action closed: ${a.txt}.`);},
+ sens(){sensCache=sensitivity();audit(`Sensitivity analysis run: max change ${pct(sensCache.maxW)} (weights), ${pct(sensCache.maxT)} (thresholds).`);},
+ restoreDefaults(){const d=defaults();S.theta=d.theta;S.omega=d.omega;S.lambda=d.lambda;S.minRest=d.minRest;Object.keys(S.crit).forEach(id=>S.crit[id].w=d.crit[id].w);sensCache=null;audit('Default weights and thresholds restored.');},
+ export(){copy(JSON.stringify({trip:S.trip,gate:gateEval().dec,JRI:gateEval().JRI,audit:S.audit,debriefs:S.debriefs,actions:S.actions,register:S.register},null,2));},
+ import(){modal(`<h3>Import a TRIAD Guard record</h3><p class="small">Paste a full state copied from this tool.</p><textarea id="imp" style="width:100%;height:200px"></textarea><div class="row" style="margin-top:8px"><button class="btn pri" data-act="doImport">Import</button><button class="btn" data-act="closeModal">Cancel</button></div>`);},
+ doImport(){try{const o=JSON.parse($('#imp').value);if(o&&o.v===1){S=o;closeModal();toast('Imported');}else if(o&&o.trip){Object.assign(S.trip,o.trip);closeModal();toast('Trip details imported');}else throw 0;}catch(e){toast('That text is not a TRIAD Guard record');}},
+ reset(){modal(`<h3>Reset the demo?</h3><p>All entries in this browser will be replaced by the illustrative demo trip.</p><div class="row"><button class="btn red" data-act="doReset">Reset</button><button class="btn" data-act="closeModal">Cancel</button></div>`);},
+ doReset(){stop();S=defaults();sensCache=null;closeModal();toast('Demo reset');},
+ closeModal(){closeModal();}
+};
+const NORENDER=new Set(['closeModal','override','import','reset','copyMsg','export']);
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act;if(!ACT[a])return;e.preventDefault();ACT[a](el);if(!NORENDER.has(a))render();else save();});
+const CHG={
+ role(el){S.role=el.value;audit('Role switched.');},
+ lambda(el){S.lambda=+el.value;},window(el){S.trip.window=+el.value;},speed(el){S.trip.speed=Math.max(30,+el.value||60);},rests(el){S.trip.restStops=+el.value;},
+ env(el){S.trip.envScreened=el.checked;},
+ drv(el){const k=el.dataset.k;S.driver[k]=(el.type==='number'||el.type==='range')?+el.value:el.value;},
+ veh(el){S.vehicle[el.dataset.k]=+el.value;},
+ mitig(el){S.gate.mitig=el.value;return 'quiet';},
+ mat(el){S.maturity[el.dataset.k]=+el.value;},
+ theta(el){S.theta[el.dataset.k]=+el.value;if(S.theta.C>S.theta.G)S.theta.C=S.theta.G;sensCache=null;},
+ omega(el){S.omega[el.dataset.k]=Math.max(0,+el.value);const s=['Q','E','H','S'].reduce((a,d)=>a+S.omega[d],0)||1;['Q','E','H','S'].forEach(d=>S.omega[d]=+(S.omega[d]/s).toFixed(4));},
+ minrest(el){S.minRest=+el.value;},
+ weight(el){S.crit[el.dataset.id].w=+el.value;sensCache=null;audit(`Weight of ${el.dataset.id} set to ${el.value}.`);},
+ radius(el){S.sos.radius=el.value;},
+ trip(el){S.trip[el.dataset.trip]=el.value;return 'quiet';}
+};
+document.addEventListener('change',e=>{const el=e.target;const k=el.dataset.chg||(el.dataset.trip?'trip':null);if(!k||!CHG[k])return;const q=CHG[k](el);if(q==='quiet'){strip();save();}else render();});
+document.addEventListener('input',e=>{const el=e.target;if(el.type==='range'&&el.dataset.chg){CHG[el.dataset.chg](el);render();const n=document.getElementById(el.id);if(n)n.focus();}
+  if(el.id==='mit'){S.gate.mitig=el.value;save();const b=document.querySelector('[data-act="release"]');if(b){const g=S.gate,G=gateEval();b.disabled=!(G.dec==='CONDITIONAL'&&g.mitig.trim().length>=10&&g.sigOps&&g.sigQ&&(S.role==='Dispatcher (Operations)'||S.role==='QEHS manager'));}}});
+document.addEventListener('submit',e=>{e.preventDefault();const f=e.target.dataset.form;
+  if(f==='defect'){const t=$('#dtxt').value.trim();if(!t){toast('Describe the defect first');return;}S.vehicle.defects.push({id:Date.now(),txt:t,grp:$('#dgrp').value,sev:$('#dsev').value,open:true,t:nowStr()});audit(`Defect reported: ${t} (${$('#dsev').value}).`);render();}
+  if(f==='debrief'){const nm=$('#nm').value.split('\n').map(x=>x.trim()).filter(Boolean),seg=+$('#dseg').value,press=+$('#press').value,lesson=$('#lesson').value.trim(),apply=$('#apply').value;
+    S.debriefs.unshift({trip:S.trip.id,t:nowStr(),nm,seg,press,well:$('#well').value,lesson,tele:$('#tele').checked});
+    if(press){S.fleet[S.fleet.length-1].sp+=1;}
+    if(lesson){S.actions.unshift({id:Date.now(),txt:lesson,owner:'QEHS manager',due:new Date(Date.now()+30*864e5).toISOString().slice(0,10),open:true,src:'Debrief '+S.trip.id});
+      if(apply==='reg')S.register.unshift({route:S.trip.route,seg,txt:lesson,t:nowStr()});
+      if(apply==='w'){const id=$('#crit').value;S.crit[id].w=3;}}
+    S.live.stage='improve';audit(`Debrief saved: ${nm.length} near miss(es)${lesson?'; lesson applied to '+({reg:'risk register',w:'criterion weight',act:'action list'}[apply]):''}.`);toast('Debrief saved; loop closed');render();}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+window.addEventListener('hashchange',()=>{render();$('#view').scrollTop=0;});
+load();if(S.theme)document.documentElement.setAttribute('data-theme',S.theme);S.live.running=false;render();
+</script>
+</body>
+</html>
