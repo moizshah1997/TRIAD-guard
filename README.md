@@ -1,5 +1,7 @@
 # TRIAD Guard
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24504525.svg)](https://doi.org/10.5281/zenodo.24504525)
+
 TRIAD Guard is a prototype decision-support application for the TRIAD-QEHS framework, which integrates journey, driver and vehicle management for chemical road transport. It implements the readiness gate (Eqs. 1–5), live re-gating (Eq. 6), route risk (Eq. 7), the QEHS performance index (Eq. 8) and the maturity score (Eq. 9) described in:
 
 > Hussain W, Hashmi SAM, Anggraini L, Lock SSM, Sutisna NA, Heryana G, Mumtaz M, Khan S. One journey, one system: integrated safety management of chemical road transport. Manuscript submitted for publication.
@@ -26,7 +28,11 @@ Corresponding author: Waqar Hussain, Universiti Teknologi PETRONAS, Malaysia.
 
 ## Citation
 
-Please cite the archived release on Zenodo and the paper. Citation metadata are in `CITATION.cff`.
+Please cite the archived software and the paper:
+
+> Hussain W, Hashmi SAM, Anggraini L, Lock SSM, Sutisna NA, Heryana G, Mumtaz M, Khan S. TRIAD Guard: decision-support prototype for the TRIAD-QEHS framework (version 1.1). Zenodo; 2026. https://doi.org/10.5281/zenodo.24504525
+
+The DOI above always resolves to the latest version; version 1.1 alone is https://doi.org/10.5281/zenodo.24504526. Citation metadata are in `CITATION.cff`.
 
 ## Licence
 
