@@ -1,0 +1,50 @@
+{
+  "title": "TRIAD Guard: decision-support prototype for the TRIAD-QEHS framework",
+  "upload_type": "software",
+  "version": "1.1",
+  "access_right": "open",
+  "license": "MIT",
+  "description": "<p>Single-file HTML prototype that implements the readiness gate, live re-gating, route risk, QEHS performance index and maturity score of the TRIAD-QEHS framework for integrated journey, driver and vehicle management in chemical road transport.</p><p>It accompanies the review paper 'One journey, one system: integrated safety management of chemical road transport'. Route, fleet and segment values are illustrative or synthetic, weights and thresholds are initial proposals, and the prototype has not been field-tested.</p>",
+  "creators": [
+    {
+      "name": "Hussain, Waqar",
+      "affiliation": "Universiti Teknologi PETRONAS, Malaysia"
+    },
+    {
+      "name": "Hashmi, Syed Abdul Moiz",
+      "affiliation": "RMIT University, Australia"
+    },
+    {
+      "name": "Anggraini, Lydia",
+      "affiliation": "President University, Indonesia"
+    },
+    {
+      "name": "Lock, Serene Sow Mun",
+      "affiliation": "Universiti Teknologi PETRONAS, Malaysia",
+      "orcid": "0000-0003-2285-0308"
+    },
+    {
+      "name": "Sutisna, Nanang Ali",
+      "affiliation": "President University, Indonesia"
+    },
+    {
+      "name": "Heryana, Ghany",
+      "affiliation": "President University, Indonesia"
+    },
+    {
+      "name": "Mumtaz, Minza",
+      "affiliation": "NED University of Engineering & Technology, Pakistan"
+    },
+    {
+      "name": "Khan, Sadia",
+      "affiliation": "NED University of Engineering & Technology, Pakistan"
+    }
+  ],
+  "keywords": [
+    "dangerous goods",
+    "chemical road transport",
+    "journey management",
+    "QEHS",
+    "readiness gate"
+  ]
+}
